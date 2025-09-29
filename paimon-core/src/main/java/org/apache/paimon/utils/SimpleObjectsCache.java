@@ -95,6 +95,9 @@ public class SimpleObjectsCache<K, V> extends ObjectsCache<K, V, Segments> {
         while (true) {
             try {
                 formatSerializer.mapFromPages(binaryRow, view);
+                // ManifestEntry row 满足要求后，直接判断 ManifestEntry status，避免重复的读操作
+                // readFilter <==> createEntryRowFilter()
+                // readVFilter <==> entry -> filterByStats(entry)
                 if (readFilter.test(binaryRow)) {
                     V v = projectedSerializer.fromRow(binaryRow);
                     if (readVFilter.test(v)) {

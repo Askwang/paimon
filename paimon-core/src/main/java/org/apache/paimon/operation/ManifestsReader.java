@@ -114,6 +114,7 @@ public class ManifestsReader {
             manifests = readManifests(snapshot, scanMode);
         }
 
+        // ManifestFileMeta filter
         List<ManifestFileMeta> filtered =
                 manifests.stream()
                         .filter(this::filterManifestFileMeta)
@@ -141,6 +142,7 @@ public class ManifestsReader {
 
     /** Note: Keep this thread-safe. */
     private boolean filterManifestFileMeta(ManifestFileMeta manifest) {
+        // bucket 的过滤
         Integer minBucket = manifest.minBucket();
         Integer maxBucket = manifest.maxBucket();
         if (minBucket != null && maxBucket != null) {
@@ -153,6 +155,7 @@ public class ManifestsReader {
             }
         }
 
+        // level 的过滤
         Integer minLevel = manifest.minLevel();
         Integer maxLevel = manifest.maxLevel();
         if (minLevel != null && maxLevel != null) {
@@ -166,6 +169,8 @@ public class ManifestsReader {
             return true;
         }
 
+        // 根据 ManifestFileMeta 的分区 stats 信息过滤，这里记录了分区的最小最大范围，进行初步过滤
+        // 如果这里分区范围不满足，则不需要读取 ManifestFileMeta 中的 ManifestEntry
         SimpleStats stats = manifest.partitionStats();
         return partitionFilter == null
                 || partitionFilter.test(

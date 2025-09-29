@@ -23,14 +23,15 @@ import org.apache.paimon.spark.schema.SparkSystemColumns.ROW_KIND_COL
 import org.apache.paimon.table.FileStoreTable
 import org.apache.paimon.table.PrimaryKeyTableUtils.validatePKUpsertDeletable
 import org.apache.paimon.table.sink.CommitMessage
+import org.apache.paimon.table.source.DataSplit
 import org.apache.paimon.types.RowKind
 import org.apache.paimon.utils.InternalRowPartitionComputer
 
-import org.apache.spark.sql.{Row, SparkSession}
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 import org.apache.spark.sql.PaimonUtils.createDataset
 import org.apache.spark.sql.catalyst.expressions.{And, Expression, Not}
 import org.apache.spark.sql.catalyst.expressions.Literal.TrueLiteral
-import org.apache.spark.sql.catalyst.plans.logical.{Filter, SupportsSubquery}
+import org.apache.spark.sql.catalyst.plans.logical.{Filter, LogicalPlan, SupportsSubquery}
 import org.apache.spark.sql.execution.datasources.v2.DataSourceV2Relation
 import org.apache.spark.sql.functions.lit
 
@@ -119,9 +120,12 @@ case class DeleteFromPaimonTableCommand(
   }
 
   private def performNonPrimaryKeyDelete(sparkSession: SparkSession): Seq[CommitMessage] = {
+    // 读取并过滤 ManifestFileMeta 和 ManifestEntry，判断要读取的 ManifestEntry（即 DataFile），属于 plan 计划生成阶段
     // Step1: the candidate data splits which are filtered by Paimon Predicate.
-    val candidateDataSplits = findCandidateDataSplits(condition, relation.output)
-    val dataFilePathToMeta = candidateFileMap(candidateDataSplits)
+    val candidateDataSplits: Seq[DataSplit] = findCandidateDataSplits(condition, relation.output)
+
+    // convertToSparkDataFileMeta，将 DataSplit 转为 SparkDataFileMeta
+    val dataFilePathToMeta: Map[String, SparkDataFileMeta] = candidateFileMap(candidateDataSplits)
 
     if (deletionVectorsEnabled) {
       // Step2: collect all the deletion vectors that marks the deleted rows.
@@ -135,26 +139,30 @@ case class DeleteFromPaimonTableCommand(
       // Step3: update the touched deletion vectors and index files
       writer.persistDeletionVectors(deletionVectors)
     } else {
+      // 将 candidateDataSplits 下推到 Relation 的 scan 阶段，DataSet 方式 scan，通过元数据列 FILE_PATH_COLUMN 拿到关联的文件路径
+      // relation 是全表的数据
       // Step2: extract out the exactly files, which must have at least one record to be updated.
-      val touchedFilePaths =
+      val touchedFilePaths: Array[String] =
         findTouchedFiles(candidateDataSplits, condition, relation, sparkSession)
 
+      // convertToDataSplits，将 SparkDataFileMeta 转为 DataSplit
       // Step3: the smallest range of data files that need to be rewritten.
-      val (touchedFiles, newRelation) =
+      val (touchedFiles: Array[SparkDataFileMeta], newRelation: LogicalPlan) =
         extractFilesAndCreateNewScan(touchedFilePaths, dataFilePathToMeta, relation)
 
+      // newRelation 只包含 touchedFile 的 relation，属于 condition 范围内的 split
       // Step4: build a dataframe that contains the unchanged data, and write out them.
-      val toRewriteScanRelation = Filter(Not(condition), newRelation)
-      var data = createDataset(sparkSession, toRewriteScanRelation)
+      val toRewriteScanRelation: Filter = Filter(Not(condition), newRelation)
+      var data: Dataset[Row] = createDataset(sparkSession, toRewriteScanRelation)
       if (coreOptions.rowTrackingEnabled()) {
         data = selectWithRowLineage(data)
       }
 
       // only write new files, should have no compaction
-      val addCommitMessage = writer.writeOnly().withRowLineage().write(data)
+      val addCommitMessage: Seq[CommitMessage] = writer.writeOnly().withRowLineage().write(data)
 
       // Step5: convert the deleted files that need to be written to commit message.
-      val deletedCommitMessage = buildDeletedCommitMessage(touchedFiles)
+      val deletedCommitMessage: Seq[CommitMessage] = buildDeletedCommitMessage(touchedFiles)
 
       addCommitMessage ++ deletedCommitMessage
     }

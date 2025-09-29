@@ -163,6 +163,7 @@ public class ReadBuilderImpl implements ReadBuilder {
 
     @Override
     public TableScan newScan() {
+        // 配置 scan 及对应的 filter
         InnerTableScan tableScan = configureScan(table.newScan());
         if (limit != null) {
             tableScan.withLimit(limit);

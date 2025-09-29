@@ -368,6 +368,7 @@ object PaimonV2WriteCommand {
 }
 
 object PaimonDynamicPartitionOverwrite {
+  // 析构进行 command 匹配
   def unapply(o: OverwritePartitionsDynamic): Option[(DataSourceV2Relation, FileStoreTable)] = {
     if (o.query.resolved) {
       // when overwrite dynamic is not supported, fallback to use v1 write

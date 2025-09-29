@@ -141,6 +141,9 @@ public class TableCommitImpl implements InnerTableCommit {
 
     @Override
     public TableCommitImpl withOverwrite(@Nullable Map<String, String> overwritePartitions) {
+        // 这里 overwritePartition 就是后面要 overwrite 重写的分区 Map 信息，仅对 static 模式有效
+        // 如果为 Empty，则会删除所有分区
+        // 如果为 pt=2025-08-05，则会删除 pt=2025-08-05 分区/子分区
         this.overwritePartition = overwritePartitions;
         return this;
     }
@@ -222,6 +225,7 @@ public class TableCommitImpl implements InnerTableCommit {
     }
 
     public void commitMultiple(List<ManifestCommittable> committables, boolean checkAppendFiles) {
+        // 如果是 overwrite 模式，不管是 static 还是 dynamic，overwritePartition != null
         if (overwritePartition == null) {
             int newSnapshots = 0;
             for (ManifestCommittable committable : committables) {
@@ -247,6 +251,7 @@ public class TableCommitImpl implements InnerTableCommit {
                 // TODO maybe it can be produced by CommitterOperator
                 committable = new ManifestCommittable(Long.MAX_VALUE);
             }
+            // static/dynamic overwrite 都走这里
             int newSnapshots =
                     commit.overwrite(overwritePartition, committable, Collections.emptyMap());
             maintain(

@@ -478,13 +478,18 @@ public class FileStoreCommitImpl implements FileStoreCommit {
 
         try {
             boolean skipOverwrite = false;
+            // 这段逻辑本质就是构建 partitionFilter，dynamic/static 模式分别要 overwrite 哪些分区
             // partition filter is built from static or dynamic partition according to properties
             PartitionPredicate partitionFilter = null;
             if (dynamicPartitionOverwrite) {
+                // dynamic overwrite 走这里
+                // dynamicPartitionOverwrite: partitionType.getFieldCount() > 0 &&
+                // options.dynamicPartitionOverwrite()
                 if (appendTableFiles.isEmpty()) {
                     // in dynamic mode, if there is no changes to commit, no data will be deleted
                     skipOverwrite = true;
                 } else {
+                    // 根据写入的文件匹配要 overwrite 的分区
                     Set<BinaryRow> partitions =
                             appendTableFiles.stream()
                                     .map(ManifestEntry::partition)
@@ -492,6 +497,8 @@ public class FileStoreCommitImpl implements FileStoreCommit {
                     partitionFilter = PartitionPredicate.fromMultiple(partitionType, partitions);
                 }
             } else {
+                // static overwrite 走这里
+                // 这里的 partition 就是前面的 overwritePartition
                 // partition may be partial partition fields, so here must to use predicate way.
                 Predicate partitionPredicate =
                         createPartitionPredicate(partition, partitionType, partitionDefaultName);
@@ -846,6 +853,7 @@ public class FileStoreCommitImpl implements FileStoreCommit {
         List<ManifestEntry> changesWithOverwrite = new ArrayList<>();
         List<IndexManifestEntry> indexChangesWithOverwrite = new ArrayList<>();
         if (latestSnapshot != null) {
+            // partitionFilter 决定了要读取哪些分区，并将分区内文件标记为 DELETE 状态
             scan.withSnapshot(latestSnapshot)
                     .withPartitionFilter(partitionFilter)
                     .withKind(ScanMode.ALL);

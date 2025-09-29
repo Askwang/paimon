@@ -93,6 +93,7 @@ public class UniversalCompaction implements CompactStrategy {
             return Optional.of(unit);
         }
 
+        // numRunCompactionTrigger=5
         // 3 checking for file num
         if (runs.size() > numRunCompactionTrigger) {
             // compacting for file num
@@ -135,6 +136,8 @@ public class UniversalCompaction implements CompactStrategy {
 
         long earliestRunSize = runs.get(runs.size() - 1).run().totalSize();
 
+        // maxSizeAmp=200，调大，跳过 SizeAmp 策略
+        // 前 n-1 个 sorted-run 的大小是否大于最后一个 sorted-run 的 2 倍
         // size amplification = percentage of additional size
         if (candidateSize * 100 > maxSizeAmp * earliestRunSize) {
             if (fullCompactTrigger != null) {
@@ -162,9 +165,14 @@ public class UniversalCompaction implements CompactStrategy {
 
     public CompactUnit pickForSizeRatio(
             int maxLevel, List<LevelSortedRun> runs, int candidateCount, boolean forcePick) {
+        // candidateCount 初始值为 1
         long candidateSize = candidateSize(runs, candidateCount);
+        // sizeRatio=1
+        // size(r1) * 1.01 < size(r2), break
+        // size(r1+r2) * 1.01 < size(r3), break
         for (int i = candidateCount; i < runs.size(); i++) {
             LevelSortedRun next = runs.get(i);
+            // 如果所有 sorted-run 大小都差不多，这里就永远不会 break
             if (candidateSize * (100.0 + sizeRatio + ratioForOffPeak()) / 100.0
                     < next.run().totalSize()) {
                 break;

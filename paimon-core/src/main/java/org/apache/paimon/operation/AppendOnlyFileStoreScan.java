@@ -114,10 +114,13 @@ public class AppendOnlyFileStoreScan extends AbstractFileStoreScan {
             return false;
         }
 
+        // fileIndexReadEnabled 默认 true
         if (!fileIndexReadEnabled) {
             return true;
         }
 
+        // file-index.in-manifest-threshold=500 bytes
+        // 只考虑 embedding file index 过滤，忽略 extra file index 过滤，会增加额外 I/O 开销
         return testFileIndex(entry.file().embeddedIndex(), entry);
     }
 

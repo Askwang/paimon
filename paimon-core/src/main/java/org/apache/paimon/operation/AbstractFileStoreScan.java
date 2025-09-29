@@ -245,11 +245,13 @@ public abstract class AbstractFileStoreScan implements FileStoreScan {
     @Override
     public Plan plan() {
         long started = System.nanoTime();
+        // 过滤 Manifest（ManifestFileMeta）
         ManifestsReader.Result manifestsResult = readManifests();
         Snapshot snapshot = manifestsResult.snapshot;
         List<ManifestFileMeta> manifests = manifestsResult.filteredManifests;
 
         Iterator<ManifestEntry> iterator = readManifestEntries(manifests, false);
+        // 所有可用的 ManifestEntry，基于这个生成读取的 splits
         List<ManifestEntry> files = new ArrayList<>();
         while (iterator.hasNext()) {
             files.add(iterator.next());
@@ -450,11 +452,13 @@ public abstract class AbstractFileStoreScan implements FileStoreScan {
                                 manifest.fileSize(),
                                 manifestsReader.partitionFilter(),
                                 createBucketFilter(),
+                                // ManifestEntry 过滤
                                 createEntryRowFilter().and(additionalFilter),
                                 entry ->
                                         (additionalTFilter == null || additionalTFilter.test(entry))
                                                 && (manifestEntryFilter == null
                                                         || manifestEntryFilter.test(entry))
+                                                // ManifestEntry status 过滤、embedding file index 过滤
                                                 && filterByStats(entry));
         if (dropStats) {
             List<ManifestEntry> copied = new ArrayList<>(entries.size());
@@ -490,6 +494,7 @@ public abstract class AbstractFileStoreScan implements FileStoreScan {
         PartitionPredicate partitionFilter = manifestsReader.partitionFilter();
         Function<InternalRow, Integer> levelGetter = ManifestEntrySerializer.levelGetter();
         BucketFilter bucketFilter = createBucketFilter();
+        // 这里的 row 就是指 ManifestEntry row，一条 ManifestEntry 的详细记录，包括 parition、bucket
         return row -> {
             if ((partitionFilter != null && !partitionFilter.test(partitionGetter.apply(row)))) {
                 return false;

@@ -225,11 +225,17 @@ public class SnapshotReaderImpl implements SnapshotReader {
                 splitAndByPartition(predicate, fieldIdxToPartitionIdx);
         List<Predicate> partitionFilters = partitionAndNonPartitionFilter.getLeft();
         List<Predicate> nonPartitionFilters = partitionAndNonPartitionFilter.getRight();
+
+        // 注册到 manifestsReader 的 PartitionPredicate 类的 partitionFilter 中
+        // manifestsReader.withPartitionFilter(predicate);
         if (partitionFilters.size() > 0) {
             scan.withPartitionFilter(PredicateBuilder.and(partitionFilters));
         }
 
         if (nonPartitionFilters.size() > 0) {
+            // 注册到 AppendOnlyFileStoreTable 的 Predicate filter 中，
+            // 或者，注册到 PrimaryKeyFileStoreTable 的 Predicate keyFilter 或 Predicate valueFilter 中
+            // return (scan, predicate) -> ((AppendOnlyFileStoreScan) scan).withFilter(predicate);
             nonPartitionFilterConsumer.accept(scan, PredicateBuilder.and(nonPartitionFilters));
         }
         return this;
