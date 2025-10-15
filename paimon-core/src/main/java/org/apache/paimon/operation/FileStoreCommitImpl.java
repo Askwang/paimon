@@ -1239,6 +1239,30 @@ public class FileStoreCommitImpl implements FileStoreCommit {
         }
     }
 
+    public void compactManifestAskwang() {
+        int retryCount = 0;
+        long startMillis = System.currentTimeMillis();
+        while (true) {
+            boolean success = compactManifestOnce();
+            if (success) {
+                break;
+            }
+
+            // 如果过长时间 commit 失败，则没必要重新 commit
+            if (System.currentTimeMillis() - startMillis > commitTimeout
+                    || retryCount >= commitMaxRetries) {
+                throw new RuntimeException(
+                        String.format(
+                                "Commit failed after %s millis with %s retries, there maybe exist commit conflicts between multiple jobs.",
+                                commitTimeout, retryCount));
+            }
+            LOG.info("Commit failed for compact manifest.");
+
+            commitRetryWait(retryCount);
+            retryCount++;
+        }
+    }
+
     private boolean compactManifestOnce() {
         Snapshot latestSnapshot = snapshotManager.latestSnapshot();
 
@@ -1302,7 +1326,7 @@ public class FileStoreCommitImpl implements FileStoreCommit {
 
         boolean success = commitSnapshotImpl(newSnapshot, emptyList());
 
-        // askwang-todo: 如果 commit snapshot 失败，相应写的 manifest 和 manifest-list 文件是否会删除？
+        // Askwang-done: 如果 commit snapshot 失败，相应写的 manifest 和 manifest-list 文件是否会删除？
         if (!success) {
             manifestList.delete(deltaManifestList.getLeft());
             cleanUpNoReuseTmpManifests(baseManifestList, mergeBeforeManifests, mergeAfterManifests);

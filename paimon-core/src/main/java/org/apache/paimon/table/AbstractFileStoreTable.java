@@ -23,6 +23,7 @@ import org.apache.paimon.Snapshot;
 import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.consumer.ConsumerManager;
 import org.apache.paimon.fs.FileIO;
+import org.apache.paimon.fs.FileStatus;
 import org.apache.paimon.fs.Path;
 import org.apache.paimon.manifest.IndexManifestEntry;
 import org.apache.paimon.manifest.ManifestEntry;
@@ -55,13 +56,16 @@ import org.apache.paimon.tag.TagAutoManager;
 import org.apache.paimon.utils.BranchManager;
 import org.apache.paimon.utils.CatalogBranchManager;
 import org.apache.paimon.utils.ChangelogManager;
+import org.apache.paimon.utils.FileStorePathFactory;
 import org.apache.paimon.utils.FileSystemBranchManager;
+import org.apache.paimon.utils.Pair;
 import org.apache.paimon.utils.Preconditions;
 import org.apache.paimon.utils.SegmentsCache;
 import org.apache.paimon.utils.SimpleFileReader;
 import org.apache.paimon.utils.SnapshotManager;
 import org.apache.paimon.utils.SnapshotNotExistException;
 import org.apache.paimon.utils.StringUtils;
+import org.apache.paimon.utils.SupplierWithIOException;
 import org.apache.paimon.utils.TagManager;
 
 import org.apache.paimon.shade.caffeine2.com.github.benmanes.caffeine.cache.Cache;
@@ -69,7 +73,11 @@ import org.apache.paimon.shade.caffeine2.com.github.benmanes.caffeine.cache.Cach
 import javax.annotation.Nullable;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,8 +85,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import static org.apache.paimon.CoreOptions.PATH;
+import static org.apache.paimon.utils.FileStorePathFactory.BUCKET_PATH_PREFIX;
 
 /** Abstract {@link FileStoreTable}. */
 abstract class AbstractFileStoreTable implements FileStoreTable {
@@ -709,6 +719,133 @@ abstract class AbstractFileStoreTable implements FileStoreTable {
         branchSchema = branchSchema.copy(branchOptions.toMap());
         return FileStoreTableFactory.create(
                 fileIO(), location(), branchSchema, new Options(), catalogEnvironment());
+    }
+
+    /**
+     * Clean empty directories under table location. step-1：获取所有层级的空目录. step-2: 删除子空目录后要递归判断父目录是否为空.
+     *
+     * @return deleted directory names
+     */
+    @Override
+    public List<String> cleanEmptyDirectoriesAskwang() {
+        List<Pair<Path, Integer>> emptyDirsWithLevel = listAllEmptyDirsWithLevelAskwang();
+        List<String> deleted = new ArrayList<>();
+        deleteEmptyDirsAskwang(emptyDirsWithLevel, deleted, this.partitionKeys().size());
+        System.out.println("=======deleted ======");
+        for (String s : deleted) {
+            System.out.println(s);
+        }
+        return deleted;
+    }
+
+    protected void deleteEmptyDirsAskwang(
+            List<Pair<Path, Integer>> emptyDirsWithLevel, List<String> deleted, int maxLevel) {
+        for (int level = 0; level <= maxLevel; level++) {
+            List<Pair<Path, Integer>> currDeleted =
+                    emptyDirsWithLevel.stream()
+                            .filter(x -> x.getRight() <= maxLevel)
+                            .filter(x -> tryDeleteEmptyDirectoryAskwang(x.getLeft()))
+                            .collect(Collectors.toList());
+            deleted.addAll(
+                    currDeleted.stream()
+                            .map(x -> x.getLeft().toString())
+                            .collect(Collectors.toList()));
+
+            // recursive deleted partition directories
+            emptyDirsWithLevel =
+                    currDeleted.stream()
+                            .map(x -> Pair.of(x.getLeft().getParent(), x.getRight() + 1))
+                            .collect(Collectors.toList());
+        }
+    }
+
+    public boolean tryDeleteEmptyDirectoryAskwang(Path path) {
+        try {
+            return fileIO.delete(path, false);
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    protected List<Pair<Path, Integer>> listAllEmptyDirsWithLevelAskwang() {
+        FileStorePathFactory pathFactory = this.store().pathFactory();
+        List<Pair<Path, Integer>> allEmptyDirs =
+                listEmptyDataDirsAskwang(pathFactory.dataFilePath(), this.partitionKeys().size());
+        for (Pair<Path, Integer> pair : allEmptyDirs) {
+            System.out.println(pair.getLeft() + " : " + pair.getRight());
+        }
+        return allEmptyDirs;
+    }
+
+    protected List<Pair<Path, Integer>> listEmptyDataDirsAskwang(Path dir, int level) {
+        List<Pair<Path, Integer>> result = new ArrayList<>();
+        if (isEmptyDir(dir)) {
+            result.add(Pair.of(dir, level));
+            return result;
+        }
+        List<FileStatus> subDirs = tryListingDirs(dir);
+
+        if (level == 0) {
+            // return empty bucket dirs
+            java.util.function.Predicate<Path> predicate =
+                    path -> path.getName().startsWith(BUCKET_PATH_PREFIX);
+            return filterDirsAskwang(subDirs, predicate).stream()
+                    .filter(this::isEmptyDir)
+                    .map(x -> Pair.of(x, level))
+                    .collect(Collectors.toList());
+        }
+
+        // filter partitionsDirs
+        List<Path> partitionDirs = filterDirsAskwang(subDirs, path -> path.getName().contains("="));
+
+        // group partitionsDirs to empty and non-empty
+        Map<Boolean, List<Path>> grouped =
+                partitionDirs.stream().collect(Collectors.partitioningBy(this::isEmptyDir));
+
+        List<Pair<Path, Integer>> emptyPartitionsDirs =
+                grouped.get(true).stream().map(x -> Pair.of(x, level)).collect(Collectors.toList());
+        result.addAll(emptyPartitionsDirs);
+        for (Path partitionDir : grouped.get(false)) {
+            result.addAll(listEmptyDataDirsAskwang(partitionDir, level - 1));
+        }
+        return result;
+    }
+
+    protected boolean isEmptyDir(Path dir) {
+        try {
+            FileStatus[] statuses = fileIO.listStatus(dir);
+            return statuses == null || statuses.length == 0;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    protected List<Path> filterDirsAskwang(
+            List<FileStatus> statuses, java.util.function.Predicate<Path> predicate) {
+        List<Path> filtered = new ArrayList<>();
+        for (FileStatus status : statuses) {
+            Path path = status.getPath();
+            if (predicate.test(path)) {
+                filtered.add(path);
+            }
+        }
+        return filtered;
+    }
+
+    protected List<FileStatus> tryListingDirs(Path dir) {
+        try {
+            if (!fileIO.exists(path)) {
+                return Collections.emptyList();
+            }
+            SupplierWithIOException<List<FileStatus>> supplier =
+                    () -> {
+                        FileStatus[] s = fileIO.listStatus(dir);
+                        return s == null ? Collections.emptyList() : Arrays.asList(s);
+                    };
+            return supplier.get();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private RollbackHelper rollbackHelper() {

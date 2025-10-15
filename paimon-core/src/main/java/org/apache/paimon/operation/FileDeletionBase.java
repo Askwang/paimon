@@ -465,6 +465,7 @@ public abstract class FileDeletionBase<T extends Snapshot> {
         }
 
         try {
+            // 等等全部 CompletableFuture 执行完成
             CompletableFuture.allOf(deletionFutures.toArray(new CompletableFuture[0])).get();
         } catch (Exception e) {
             throw new RuntimeException(e);

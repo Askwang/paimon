@@ -174,4 +174,6 @@ public interface FileStoreTable extends DataTable {
         LocalOrphanFilesClean clean = new LocalOrphanFilesClean(this, System.currentTimeMillis());
         clean.clean();
     }
+
+    List<String> cleanEmptyDirectoriesAskwang();
 }

@@ -331,6 +331,7 @@ public abstract class AbstractFileStoreScan implements FileStoreScan {
     public List<PartitionEntry> readPartitionEntries() {
         List<ManifestFileMeta> manifests = readManifests().filteredManifests;
         Map<BinaryRow, PartitionEntry> partitions = new ConcurrentHashMap<>();
+        // 合并单个 ManifestFileMeta 包含的分区信息，并合并到全局 partitions 中
         Consumer<ManifestFileMeta> processor =
                 m -> PartitionEntry.merge(PartitionEntry.merge(readManifest(m)), partitions);
         randomlyOnlyExecute(getExecutorService(parallelism), processor, manifests);
@@ -368,6 +369,7 @@ public abstract class AbstractFileStoreScan implements FileStoreScan {
             List<ManifestFileMeta> manifests,
             Function<List<ManifestEntry>, List<T>> converter,
             boolean useSequential) {
+        // read deleted entries
         Set<Identifier> deletedEntries =
                 FileEntry.readDeletedEntries(
                         manifest -> readManifest(manifest, FileEntry.deletedFilter(), null),
