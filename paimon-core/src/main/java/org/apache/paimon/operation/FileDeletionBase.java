@@ -214,6 +214,24 @@ public abstract class FileDeletionBase<T extends Snapshot> {
         deleteFiles(actualDataFileToDelete, fileIO::deleteQuietly);
     }
 
+    protected void doCleanUnusedDataFileAskwang(
+            Map<Path, Pair<ExpireFileEntry, List<Path>>> dataFileToDelete,
+            Predicate<ExpireFileEntry> skipper) {
+        List<Path> actualDataFileToDelete = new ArrayList<>();
+        dataFileToDelete.forEach(
+                (path, pair) -> {
+                    ExpireFileEntry entry = pair.getLeft();
+                    if (!skipper.test(entry)) {
+                        actualDataFileToDelete.add(path);
+                        actualDataFileToDelete.addAll(pair.getRight());
+
+                        recordDeletionBuckets(entry);
+                    }
+                }
+        );
+        deleteFiles(actualDataFileToDelete, fileIO::deleteQuietly);
+    }
+
     protected void getDataFileToDelete(
             Map<Path, Pair<ExpireFileEntry, List<Path>>> dataFileToDelete,
             List<ExpireFileEntry> dataFileEntries) {
@@ -238,6 +256,30 @@ public abstract class FileDeletionBase<T extends Snapshot> {
                 default:
                     throw new UnsupportedOperationException(
                             "Unknown value kind " + entry.kind().name());
+            }
+        }
+    }
+
+    protected void getDataFileToDeleteAskwang(
+            Map<Path, Pair<ExpireFileEntry, List<Path>>> dataFileToDelete,
+            List<ExpireFileEntry> dataFileEntries) {
+        DataFilePathFactories factories = new DataFilePathFactories(pathFactory);
+        for (ExpireFileEntry entry : dataFileEntries) {
+            DataFilePathFactory dataFilePathFactory = factories.get(entry.partition(), entry.bucket());
+            Path dataFilePath = dataFilePathFactory.toPath(entry);
+            switch (entry.kind()) {
+                case ADD:
+                    dataFileToDelete.remove(dataFilePath);
+                    break;
+                case DELETE:
+                    ArrayList<Path> extraFiles = new ArrayList<>(entry.extraFiles().size());
+                    for (String file : entry.extraFiles()) {
+                        extraFiles.add(dataFilePathFactory.toAlignedPath(file, entry));
+                    }
+                    dataFileToDelete.put(dataFilePath, Pair.of(entry, extraFiles));
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unknown value kind " + entry.kind().name());
             }
         }
     }
