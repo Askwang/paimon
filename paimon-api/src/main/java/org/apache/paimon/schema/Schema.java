@@ -174,7 +174,7 @@ public class Schema {
                         new DataField(
                                 field.id(),
                                 field.name(),
-                                field.type().copy(false),
+                                field.type().copy(false), // pk 强制不能为 null
                                 field.description(),
                                 field.defaultValue()));
             } else {

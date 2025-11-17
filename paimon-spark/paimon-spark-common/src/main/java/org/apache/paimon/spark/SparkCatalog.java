@@ -484,6 +484,7 @@ public class SparkCatalog extends SparkBaseCatalog
                         .partitionKeys(convertPartitionTransforms(partitions))
                         .comment(properties.getOrDefault(TableCatalog.PROP_COMMENT, null));
 
+        // 将 spark 的 field 转化为 Paimon 的 schema 信息
         for (StructField field : schema.fields()) {
             String name = field.name();
             DataType type = toPaimonType(field.dataType()).copy(field.nullable());
@@ -496,6 +497,7 @@ public class SparkCatalog extends SparkBaseCatalog
                 schemaBuilder.column(name, type, comment);
             }
         }
+        // build 的时候会对 primary-key/partition-key 进行规范化处理，比如 pk 不能为 null
         return schemaBuilder.build();
     }
 

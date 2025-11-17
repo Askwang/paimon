@@ -152,6 +152,7 @@ public abstract class AbstractSparkInternalRow extends SparkInternalRow {
 
     @Override
     public UTF8String getUTF8String(int ordinal) {
+        // paimon 的 BinaryString 转为 Spark 的 UTF8String
         return fromPaimon(row.getString(ordinal));
     }
 

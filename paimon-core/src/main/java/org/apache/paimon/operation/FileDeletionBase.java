@@ -227,8 +227,7 @@ public abstract class FileDeletionBase<T extends Snapshot> {
 
                         recordDeletionBuckets(entry);
                     }
-                }
-        );
+                });
         deleteFiles(actualDataFileToDelete, fileIO::deleteQuietly);
     }
 
@@ -265,7 +264,8 @@ public abstract class FileDeletionBase<T extends Snapshot> {
             List<ExpireFileEntry> dataFileEntries) {
         DataFilePathFactories factories = new DataFilePathFactories(pathFactory);
         for (ExpireFileEntry entry : dataFileEntries) {
-            DataFilePathFactory dataFilePathFactory = factories.get(entry.partition(), entry.bucket());
+            DataFilePathFactory dataFilePathFactory =
+                    factories.get(entry.partition(), entry.bucket());
             Path dataFilePath = dataFilePathFactory.toPath(entry);
             switch (entry.kind()) {
                 case ADD:
@@ -279,7 +279,8 @@ public abstract class FileDeletionBase<T extends Snapshot> {
                     dataFileToDelete.put(dataFilePath, Pair.of(entry, extraFiles));
                     break;
                 default:
-                    throw new UnsupportedOperationException("Unknown value kind " + entry.kind().name());
+                    throw new UnsupportedOperationException(
+                            "Unknown value kind " + entry.kind().name());
             }
         }
     }

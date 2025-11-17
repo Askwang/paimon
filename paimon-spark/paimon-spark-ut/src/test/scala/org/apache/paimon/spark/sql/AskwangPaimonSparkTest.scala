@@ -27,6 +27,26 @@ import scala.jdk.CollectionConverters._
 
 /** paimon spark test. */
 class AskwangPaimonSparkTest extends PaimonSparkTestBase {
+
+  test("String hour with int type not partition push down") {
+
+    println(sparkVersion)
+
+    sql(s"""
+           |CREATE TABLE T (id STRING, hour STRING, appid string)
+           |TBLPROPERTIES ('primary-key'='id,hour', 'bucket'='2')
+           | PARTITIONED BY (hour)
+           |""".stripMargin)
+
+    sql(" insert into T values ('1', '15', '004');")
+    sql(" insert into T values ('1', '16', '004');")
+    sql(" insert into T values ('1', '17', '003');")
+    sql(" insert into T values ('2', '17', '004');")
+
+    //    sql("select * from T where hour=17 and appid ='004'").show(false)
+    sql("select * from T where hour='17' and appid ='004'").show(false)
+  }
+
   test(s"custom pk and bucket prop") {
     val hasPk = true
     val bucket = 4
@@ -167,6 +187,21 @@ class AskwangPaimonSparkTest extends PaimonSparkTestBase {
     spark.sql("INSERT INTO T VALUES(4, 'd', '2024-10-09', '01')")
 
     spark.sql("show partitions T").show(false)
+  }
+
+  test("string read and write") {
+
+    withSparkSQLConf("spark.sql.codegen.wholeStage" -> "false") {
+      println(sparkVersion)
+      sql(s"""
+             |CREATE TABLE T (id STRING, value STRING)
+             |TBLPROPERTIES ('primary-key'='id', 'bucket'='3', 'write-only'='true')
+             |""".stripMargin)
+      sql(s"INSERT INTO T VALUES ('a', 'a1')")
+      sql(s"INSERT INTO T VALUES ('b', 'b1')")
+
+      sql("select * from T").show(false)
+    }
   }
 
   test("tmp: xxx") {

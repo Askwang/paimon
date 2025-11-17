@@ -66,7 +66,8 @@ trait ColumnPruningAndPushDown extends Scan with Logging {
   }
 
   lazy val readBuilder: ReadBuilder = {
-    val _readBuilder = table.newReadBuilder().withReadType(readTableRowType)
+    val _readBuilder: ReadBuilder = table.newReadBuilder().withReadType(readTableRowType)
+    // PaimonScan 的 filters（pushedPaimonPredicates)
     if (filters.nonEmpty) {
       val pushedPredicate = PredicateBuilder.and(filters: _*)
       _readBuilder.withFilter(pushedPredicate)

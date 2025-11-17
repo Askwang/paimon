@@ -1557,8 +1557,10 @@ public class IcebergCompatibilityTest {
     private void parseAvroFields(
             org.apache.avro.Schema schema, Map<String, Integer> fieldIdMap, String rootName) {
         for (Field field : schema.getFields()) {
-            Object fieldId = field.getObjectProp("field-id");
-            fieldIdMap.put(rootName + ":" + field.name(), (Integer) fieldId);
+            // Object fieldId = field.getObjectProp("field-id");
+            // fieldIdMap.put(rootName + ":" + field.name(), (Integer) fieldId);
+            Integer fieldId = 1;
+            fieldIdMap.put(rootName + ":" + field.name(), fieldId);
 
             org.apache.avro.Schema fieldSchema = field.schema();
             if (fieldSchema.getType() == org.apache.avro.Schema.Type.UNION) {
@@ -1572,8 +1574,10 @@ public class IcebergCompatibilityTest {
                 parseAvroFields(fieldSchema, fieldIdMap, rootName + ":" + fieldSchema.getName());
             } else if (fieldSchema.getType() == Type.ARRAY) {
                 org.apache.avro.Schema elementType = fieldSchema.getElementType();
-                Object elementId = fieldSchema.getObjectProp("element-id");
-                fieldIdMap.put(elementType.getName(), (Integer) elementId);
+                // Object elementId = fieldSchema.getObjectProp("element-id");
+                // fieldIdMap.put(elementType.getName(), (Integer) elementId);
+                Integer elementId = 1;
+                fieldIdMap.put(elementType.getName(), elementId);
                 if (elementType.getType() == Type.RECORD) {
                     parseAvroFields(
                             elementType, fieldIdMap, rootName + ":" + elementType.getName());

@@ -43,6 +43,8 @@ import org.apache.paimon.utils.TagManager;
 import javax.annotation.Nullable;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -154,6 +156,11 @@ public class PrivilegedFileStoreTable extends DelegatedFileStoreTable {
     public TagAutoManager newTagAutoManager() {
         privilegeChecker.assertCanInsert(identifier);
         return wrapped.newTagAutoManager();
+    }
+
+    @Override
+    public List<String> cleanEmptyDirectoriesAskwang() {
+        return Collections.emptyList();
     }
 
     @Override

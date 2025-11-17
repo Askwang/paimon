@@ -298,6 +298,8 @@ public class MemorySegmentUtils {
             int remain = segment.size() - offset;
             if (remain > 0) {
                 int nCopy = Math.min(remain, remainSize);
+                // remainSize 表示“还没拷完的部分”，用它能推算出“已经写了多少”
+                // 当前写入位置 = bytesOffset + (已写入字节数) = bytesOffset + numBytes - remainSize
                 segment.get(offset, bytes, numBytes - remainSize + bytesOffset, nCopy);
                 remainSize -= nCopy;
                 // next new segment.

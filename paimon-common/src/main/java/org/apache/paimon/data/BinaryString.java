@@ -78,6 +78,7 @@ public final class BinaryString extends BinarySection implements Comparable<Bina
      * bytes.
      */
     public static BinaryString fromBytes(byte[] bytes, int offset, int numBytes) {
+        // 长度为 1 的 MemorySegment 数组，元素为 MemorySegment.warp(bytes) 对象，如 new int[] {k}
         return new BinaryString(new MemorySegment[] {MemorySegment.wrap(bytes)}, offset, numBytes);
     }
 
@@ -348,6 +349,7 @@ public final class BinaryString extends BinarySection implements Comparable<Bina
         if (s.sizeInBytes == 0) {
             return true;
         }
+
         int find =
                 MemorySegmentUtils.find(
                         segments, offset, sizeInBytes, s.segments, s.offset, s.sizeInBytes);

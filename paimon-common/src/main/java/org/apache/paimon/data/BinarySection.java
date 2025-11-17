@@ -30,7 +30,6 @@ import java.io.Serializable;
 
 /** Describe a section of memory. */
 public abstract class BinarySection implements Serializable {
-
     private static final long serialVersionUID = 1L;
 
     /**

@@ -44,6 +44,7 @@ abstract class PaimonBaseScanBuilder(table: InnerTable)
   protected var pushDownTopN: Option[TopN] = None
 
   override def build(): Scan = {
+    // 构建 PaimonScan 对象，paimon 内置的所有 filter 下推都是基于这里的几个 filter 条件
     PaimonScan(
       table,
       requiredSchema,

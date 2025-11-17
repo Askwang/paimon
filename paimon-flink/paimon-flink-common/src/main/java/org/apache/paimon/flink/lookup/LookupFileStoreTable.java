@@ -31,6 +31,7 @@ import org.apache.paimon.table.FileStoreTable;
 import org.apache.paimon.table.source.InnerTableRead;
 import org.apache.paimon.table.source.StreamDataTableScan;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -109,6 +110,11 @@ public class LookupFileStoreTable extends DelegatedFileStoreTable {
     public FileStoreTable switchToBranch(String branchName) {
         wrapped.switchToBranch(branchName);
         return this;
+    }
+
+    @Override
+    public List<String> cleanEmptyDirectoriesAskwang() {
+        return Collections.emptyList();
     }
 
     private LookupStreamScanMode lookupStreamScanMode(FileStoreTable table, List<String> joinKeys) {
