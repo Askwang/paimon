@@ -52,7 +52,7 @@ public class CastExecutors {
                 // Boolean <-> numeric rules
                 .addRule(BooleanToNumericCastRule.INSTANCE)
                 .addRule(NumericToBooleanCastRule.INSTANCE)
-                // To string rules
+                // To string rules 
                 .addRule(NumericToStringCastRule.INSTANCE)
                 .addRule(BooleanToStringCastRule.INSTANCE)
                 .addRule(TimestampToStringCastRule.INSTANCE)

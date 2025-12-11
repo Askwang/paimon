@@ -18,18 +18,56 @@
 
 package org.apache.paimon.utils;
 
+import org.apache.paimon.CoreOptions;
 import org.apache.paimon.data.BinaryRow;
 import org.apache.paimon.data.BinaryRowWriter;
 import org.apache.paimon.data.BinaryString;
+import org.apache.paimon.data.GenericRow;
+import org.apache.paimon.types.DataField;
 import org.apache.paimon.types.DataTypes;
 import org.apache.paimon.types.RowType;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Test for {@link InternalRowPartitionComputer}. */
 public class InternalRowPartitionComputerTest {
+
+    @Test
+    public void testAskwang() {
+        RowType rowType =
+                RowType.of(
+                        new DataField(0, "day", DataTypes.STRING()),
+                        new DataField(1, "hour", DataTypes.INT()));
+        String[] partitionColumns = rowType.getFieldNames().toArray(new String[0]);
+        String defaultPartValue = CoreOptions.PARTITION_DEFAULT_NAME.defaultValue();
+        InternalRowPartitionComputer partitionComputer =
+                new InternalRowPartitionComputer(
+                        defaultPartValue,
+                        rowType,
+                        partitionColumns,
+                        CoreOptions.PARTITION_GENERATE_LEGACY_NAME.defaultValue());
+        BinaryRow row = new BinaryRow(2);
+        BinaryRowWriter rowWriter = new BinaryRowWriter(row);
+        rowWriter.writeString(0, BinaryString.fromString("20251211"));
+        rowWriter.writeInt(1, 10);
+        LinkedHashMap<String, String> partValues = partitionComputer.generatePartValues(row);
+        System.out.println(partValues);
+
+        GenericRow genericRow =
+                InternalRowPartitionComputer.convertSpecToInternalRow(
+                        partValues, rowType, defaultPartValue);
+        System.out.println(genericRow);
+
+        Map<String, Object> specToInternal =
+                InternalRowPartitionComputer.convertSpecToInternal(
+                        partValues, rowType, defaultPartValue);
+        System.out.println(specToInternal);
+    }
 
     @Test
     public void testPartitionToString() {

@@ -60,6 +60,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class BinaryRowTest {
 
     @Test
+    public void testAsKwang() {
+        BinaryRow row = new BinaryRow(2);
+        BinaryRowWriter writer = new BinaryRowWriter(row);
+
+        writer.writeString(0, fromString("20251210"));
+        writer.writeInt(1, 20);
+        // writer.row.equals(row) = true
+        //        writer.setNullAt(1);
+        writer.reset();
+
+        BinaryString string = row.getString(0);
+        int anInt = row.getInt(1);
+        System.out.println();
+    }
+
+    @Test
     public void testBasic() {
         // consider header 1 byte.
         assertThat(new BinaryRow(0).getFixedLengthPartSize()).isEqualTo(8);

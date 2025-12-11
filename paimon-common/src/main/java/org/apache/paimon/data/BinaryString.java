@@ -46,6 +46,7 @@ public final class BinaryString extends BinarySection implements Comparable<Bina
     public static final BinaryString EMPTY_UTF8 = BinaryString.fromBytes(encodeUTF8(""));
 
     public BinaryString(MemorySegment[] segments, int offset, int sizeInBytes) {
+        // BinaryString 本身没有属性维护，全部由父类 BinarySection 实现内存区域
         super(segments, offset, sizeInBytes);
         this.segments = segments;
         this.offset = offset;
@@ -65,6 +66,7 @@ public final class BinaryString extends BinarySection implements Comparable<Bina
         if (str == null) {
             return null;
         }
+        // encodeUTF8(str)： 复用内存区域，将 str 的内容 copy 到内存数组中
         return fromBytes(encodeUTF8(str));
     }
 
@@ -78,7 +80,7 @@ public final class BinaryString extends BinarySection implements Comparable<Bina
      * bytes.
      */
     public static BinaryString fromBytes(byte[] bytes, int offset, int numBytes) {
-        // 长度为 1 的 MemorySegment 数组，元素为 MemorySegment.warp(bytes) 对象，如 new int[] {k}
+        // 长度为 1 的 MemorySegment 数组，元素为 MemorySegment.warp(bytes) 对象，如 new int[]{ele1、ele2}
         return new BinaryString(new MemorySegment[] {MemorySegment.wrap(bytes)}, offset, numBytes);
     }
 

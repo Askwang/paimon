@@ -111,6 +111,9 @@ public class InternalRowPartitionComputer {
         GenericRow partRow = new GenericRow(spec.size());
         List<String> fieldNames = partType.getFieldNames();
         for (Map.Entry<String, String> entry : spec.entrySet()) {
+            // partitionValue = field.toString() 或者 partitionCastExecutors[i].cast(field).toString()
+            // 将 BinaryRow 转为 String
+            // 这里 castFromString 再将 String 封装成相应的 Row
             Object value =
                     defaultPartValue != null && defaultPartValue.equals(entry.getValue())
                             ? null

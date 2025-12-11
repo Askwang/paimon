@@ -88,6 +88,7 @@ public class TypeUtils {
                         .collect(Collectors.toList()));
     }
 
+    /** String 类型的数据转为对应 DataType 的值。 * */
     public static Object castFromString(String s, DataType type) {
         return castFromStringInternal(s, type, false);
     }

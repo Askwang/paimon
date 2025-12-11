@@ -75,6 +75,7 @@ public final class BinaryRow extends BinarySection implements InternalRow, DataS
     }
 
     public static int calculateBitSetWidthInBytes(int arity) {
+        // HEADER_SIZE_IN_BITS=8，基本都是返回 8
         return ((arity + 63 + HEADER_SIZE_IN_BITS) / 64) * 8;
     }
 
@@ -82,7 +83,9 @@ public final class BinaryRow extends BinarySection implements InternalRow, DataS
         return calculateBitSetWidthInBytes(arity) + 8 * arity;
     }
 
+    // 字段的个数
     private final int arity;
+
     private final int nullBitsSizeInBytes;
 
     public BinaryRow(int arity) {

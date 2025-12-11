@@ -55,6 +55,7 @@ public final class BinaryRowWriter extends AbstractBinaryWriter {
     /** Default not null. */
     @Override
     public void setNullAt(int pos) {
+        // askwang-todo: setNullBit 不懂
         setNullBit(pos);
         segment.putLong(getFieldOffset(pos), 0L);
     }
