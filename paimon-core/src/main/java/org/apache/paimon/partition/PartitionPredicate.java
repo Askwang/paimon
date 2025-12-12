@@ -180,7 +180,7 @@ public interface PartitionPredicate extends Serializable {
         private MultiplePartitionPredicate(
                 RowDataToObjectArrayConverter converter, Set<BinaryRow> partitions) {
             this.partitions = partitions;
-            RowType partitionType = converter.rowType();
+            RowType partitionType = converter.partitionType();
             this.fieldNum = partitionType.getFieldCount();
             @SuppressWarnings("unchecked")
             Serializer<Object>[] serializers = new Serializer[fieldNum];

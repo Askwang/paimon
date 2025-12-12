@@ -1,11 +1,11 @@
 # core
-- [ ] scan
-- [ ] write
+- [ ] file scan
+- [ ] file write
 - [ ] merge-engine
 - [ ] lsm sorted-run
-- [ ] manifest push-down
+- [x] manifest push-down
 - [ ] stat info
-- [ ] index
+- [ ] index read/write
 - [ ] changelog procedure
 - [ ] deletion vector
 
@@ -14,6 +14,8 @@
 - [ ] compact_manifest
 - [ ] expire_snapshots
 - [ ] expire_partitions
+  - [ ] createPartitionExpireStrategy CUSTOM 策略
+  - [ ] PartitionLoader/PartitionHandler/PartitionPredicate
 - [ ] remove_orphan_files 
 - [ ] expire_tags
 - [ ] create_tag/rename_tag/replace_tag/delete_tag
@@ -31,8 +33,17 @@
 # sql
 - [ ] insert into/overwrite
 - [ ] delete from
+  - [x] append table
 - [ ] update table
 - [ ] drop partition
 - [ ] merge into
 - [ ] truncate table
 
+# basic
+- [x] Predicate/PredicateBuilder (PredicateTest/PredicateBuilderTest)
+- [x] BinaryString/BinaryRow/BinaryRowWriter (BinaryRowTest)
+- [x] InternalRowPartitionComputer (InternalRowPartitionComputerTest)
+- [ ] CastExecutors
+- [ ] AbstractFileStore 和 AbstractFileStoreTable
+  - [ ] KeyValueFieldsExtractor
+  - [ ] KeyValueFileStore keyType/valueType/partitionType/bucketKeyType

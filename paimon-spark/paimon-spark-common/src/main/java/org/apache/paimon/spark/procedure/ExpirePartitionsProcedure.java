@@ -95,7 +95,7 @@ public class ExpirePartitionsProcedure extends BaseProcedure {
                                     options);
                     table = table.copy(dynamicOptions);
                     FileStoreTable fileStoreTable = (FileStoreTable) table;
-                    FileStore fileStore = fileStoreTable.store();
+                    FileStore<?> fileStore = fileStoreTable.store();
 
                     PartitionExpire partitionExpire =
                             fileStore.newPartitionExpire("", fileStoreTable);

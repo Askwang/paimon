@@ -86,6 +86,7 @@ public abstract class PartitionExpireStrategy {
             case VALUES_TIME:
                 return new PartitionValuesTimeExpireStrategy(options, partitionType);
             case CUSTOM:
+                // Askwang-todo: 如何自定义
                 return PartitionExpireStrategyFactory.INSTANCE
                         .get()
                         .create(catalogLoader, identifier, options, partitionType);

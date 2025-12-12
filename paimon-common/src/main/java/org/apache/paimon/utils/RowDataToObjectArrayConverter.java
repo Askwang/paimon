@@ -30,22 +30,22 @@ public class RowDataToObjectArrayConverter implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private final RowType rowType;
+    private final RowType partitionType;
     private final InternalRow.FieldGetter[] fieldGetters;
 
-    public RowDataToObjectArrayConverter(RowType rowType) {
-        this.rowType = rowType;
+    public RowDataToObjectArrayConverter(RowType partitionType) {
+        this.partitionType = partitionType;
         this.fieldGetters =
-                IntStream.range(0, rowType.getFieldCount())
+                IntStream.range(0, partitionType.getFieldCount())
                         .mapToObj(
                                 i ->
                                         InternalRowUtils.createNullCheckingFieldGetter(
-                                                rowType.getTypeAt(i), i))
+                                                partitionType.getTypeAt(i), i))
                         .toArray(InternalRow.FieldGetter[]::new);
     }
 
-    public RowType rowType() {
-        return rowType;
+    public RowType partitionType() {
+        return partitionType;
     }
 
     public int getArity() {
@@ -56,6 +56,10 @@ public class RowDataToObjectArrayConverter implements Serializable {
         return GenericRow.of(convert(rowData));
     }
 
+    /**
+     * {@link InternalRowPartitionComputer#generatePartValues(InternalRow)}
+     * fieldGetters[i].getFieldOrNull(rowData) 结果会根据是否是 legacyPartitionName 区分
+     */
     public Object[] convert(InternalRow rowData) {
         Object[] result = new Object[fieldGetters.length];
         for (int i = 0; i < fieldGetters.length; i++) {

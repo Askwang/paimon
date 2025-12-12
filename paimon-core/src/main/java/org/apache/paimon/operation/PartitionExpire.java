@@ -56,8 +56,8 @@ public class PartitionExpire {
     private LocalDateTime lastCheck;
     private final PartitionExpireStrategy strategy;
     private final boolean endInputCheckPartitionExpire;
-    private int maxExpireNum;
-    private int expireBatchSize;
+    private final int maxExpireNum;
+    private final int expireBatchSize;
 
     public PartitionExpire(
             Duration expirationTime,
@@ -156,6 +156,8 @@ public class PartitionExpire {
             expired = convertToPartitionString(expiredPartValues);
             LOG.info("Expire Partitions: {}", expired);
             if (expireBatchSize > 0 && expireBatchSize < expired.size()) {
+                // expired 默认是 100，当调大 expired，可以分批 doExpire
+                // List.partition(200, 4) 表示分 4 个批次执行
                 Lists.partition(expired, expireBatchSize)
                         .forEach(
                                 expiredBatchPartitions ->
