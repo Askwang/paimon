@@ -146,12 +146,18 @@ public class PartitionExpire {
                 strategy.selectExpiredPartitions(scan, expireDateTime);
         List<List<String>> expiredPartValues = new ArrayList<>(partitionEntries.size());
         for (PartitionEntry partition : partitionEntries) {
-            Object[] array = strategy.convertPartition(partition.partition());
-            expiredPartValues.add(strategy.toPartitionValue(array));
+            Object[] array =
+                    strategy.convertPartition(
+                            partition.partition()); // Object[]: ['2025-12-15', '10']
+            expiredPartValues.add(
+                    strategy.toPartitionValue(array)); // List<String>: ['2025-12-15', '10']
         }
 
         List<Map<String, String>> expired = new ArrayList<>();
         if (!expiredPartValues.isEmpty()) {
+            // List<
+            //      Map<day='2025-12-15',hour='10'>,
+            //      Map<day='2025-12-15', hour='10'>>
             // convert partition value to partition string, and limit the partition num
             expired = convertToPartitionString(expiredPartValues);
             LOG.info("Expire Partitions: {}", expired);

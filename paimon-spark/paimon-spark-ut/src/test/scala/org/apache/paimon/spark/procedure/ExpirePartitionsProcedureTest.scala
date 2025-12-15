@@ -18,12 +18,27 @@
 
 package org.apache.paimon.spark.procedure
 
+import org.apache.paimon.CoreOptions
+import org.apache.paimon.catalog.{CatalogLoader, Identifier}
+import org.apache.paimon.data.{BinaryRow, BinaryString}
+import org.apache.paimon.manifest.PartitionEntry
+import org.apache.paimon.operation.FileStoreScan
+import org.apache.paimon.partition.{PartitionExpireStrategy, PartitionExpireStrategyFactory}
 import org.apache.paimon.spark.PaimonSparkTestBase
+import org.apache.paimon.spark.procedure.CustomPartitionExpirationFactoryAskwang.TABLE_EXPIRE_PARTITIONS
+import org.apache.paimon.types.RowType
 
 import org.apache.spark.sql.{Dataset, Row}
 import org.apache.spark.sql.execution.streaming.MemoryStream
 import org.apache.spark.sql.streaming.StreamTest
 import org.assertj.core.api.Assertions.assertThatThrownBy
+
+import java.time.LocalDateTime
+import java.util
+import java.util.{Comparator, HashMap, List, Map}
+
+import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 /** IT Case for [[ExpirePartitionsProcedure]]. */
 class ExpirePartitionsProcedureTest extends PaimonSparkTestBase with StreamTest {
@@ -757,4 +772,65 @@ class ExpirePartitionsProcedureTest extends PaimonSparkTestBase with StreamTest 
       }
     }
   }
+
+  test("custom partition expire stragegy") {
+    sql(s"""
+           |CREATE TABLE T (k INT, pt STRING)
+           |TBLPROPERTIES (
+           |  'primary-key' = 'k,pt',
+           |  'bucket' = '1',
+           |  'write-only' = 'true',
+           |  'partition.timestamp-formatter' = 'yyyy-MM-dd',
+           |  'partition.expiration-max-num'='2',
+           |  'partition.expiration-strategy'='custom')
+           |PARTITIONED BY (pt)
+           |""".stripMargin)
+
+    val table = loadTable("T")
+
+    sql("insert into T values(1, '2025-12-01')")
+    sql("insert into T values(2, '2025-12-02')")
+    sql("insert into T values(3, '2025-12-03')")
+    sql("insert into T values(4, '2025-12-03')")
+
+    val entries: mutable.Buffer[PartitionEntry] =
+      table.newScan().listPartitionEntries().asScala.sortBy(_.fileCount()).reverse
+    for (elem <- entries) {
+      val row: BinaryRow = elem.partition()
+      val value = row.getString(0)
+      println(value)
+    }
+
+    TABLE_EXPIRE_PARTITIONS.put("user-expired-partitions", entries.asJava)
+
+    sql(
+      "CALL paimon.sys.expire_partitions(table => 'test.T', " +
+        "options => 'partition.expiration-time = 1d," +
+        " partition.expiration-max-num = 5," +
+        " partition.timestamp-formatter = yyyy-MM-dd')")
+
+    sql("show partitions T").show(false)
+  }
+}
+
+class CustomPartitionExpirationFactoryAskwang extends PartitionExpireStrategyFactory {
+
+  override def create(
+      catalogLoader: CatalogLoader,
+      identifier: Identifier,
+      options: CoreOptions,
+      partitionType: RowType): PartitionExpireStrategy = {
+    new PartitionExpireStrategy(partitionType, options.partitionDefaultName) {
+      override def selectExpiredPartitions(
+          scan: FileStoreScan,
+          expirationTime: LocalDateTime): util.List[PartitionEntry] = {
+        TABLE_EXPIRE_PARTITIONS.get("user-expired-partitions")
+      }
+    }
+  }
+
+}
+
+object CustomPartitionExpirationFactoryAskwang {
+  val TABLE_EXPIRE_PARTITIONS = new util.HashMap[String, util.List[PartitionEntry]]
 }

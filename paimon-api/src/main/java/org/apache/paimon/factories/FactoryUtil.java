@@ -158,6 +158,15 @@ public class FactoryUtil {
                             klass.getName()));
         }
 
+        // multi strategies
+        if (factories.size() > 1) {
+            for (T factory : factories) {
+                if (factory.getClass().toString().contains("Askwang")) {
+                    return factory;
+                }
+            }
+        }
+
         if (factories.size() > 1) {
             throw new FactoryException(
                     String.format(

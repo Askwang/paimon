@@ -14,7 +14,7 @@
 - [ ] compact_manifest
 - [ ] expire_snapshots
 - [ ] expire_partitions
-  - [ ] createPartitionExpireStrategy CUSTOM 策略
+  - [x] PartitionExpireStrategy CUSTOM 策略
   - [ ] PartitionLoader/PartitionHandler/PartitionPredicate
 - [ ] remove_orphan_files 
 - [ ] expire_tags
