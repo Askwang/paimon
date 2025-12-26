@@ -18,29 +18,18 @@
 
 package org.apache.paimon.predicate;
 
-import java.util.ArrayList;
+import org.apache.paimon.data.InternalRow;
+import org.apache.paimon.types.DataType;
+
+import java.io.Serializable;
 import java.util.List;
-import java.util.Optional;
 
-/** A {@link PredicateVisitor} to replace {@link Predicate}. */
-public interface PredicateReplaceVisitor extends PredicateVisitor<Optional<Predicate>> {
+/** Represents a transform function. */
+public interface Transform extends Serializable {
 
-    @Override
-    default Optional<Predicate> visit(CompoundPredicate predicate) {
-        List<Predicate> converted = new ArrayList<>();
-        for (Predicate child : predicate.children()) {
-            Optional<Predicate> optional = child.visit(this);
-            if (optional.isPresent()) {
-                converted.add(optional.get());
-            } else {
-                return Optional.empty();
-            }
-        }
-        return Optional.of(new CompoundPredicate(predicate.function(), converted));
-    }
+    List<Object> inputs();
 
-    @Override
-    default Optional<Predicate> visit(TransformPredicate predicate) {
-        throw new UnsupportedOperationException();
-    }
+    DataType outputType();
+
+    Object transform(InternalRow row);
 }
