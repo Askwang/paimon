@@ -47,11 +47,12 @@ case class SparkTableWrite(
     _write
   }
 
-  private val toPaimonRow = {
+  private val toPaimonRow: Row => SparkRow = {
     SparkRowUtils.toPaimonRow(writeType, rowKindColIdx)
   }
 
   def write(row: Row): Unit = {
+    // toPaimonRow 是个 Function，toPaimonRow(row) 等价于 toPaimonRow.apply(row)
     write.write(toPaimonRow(row))
   }
 

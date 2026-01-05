@@ -29,7 +29,7 @@ import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.{CatalystTypeConverters, InternalRow}
 import org.apache.spark.sql.catalyst.util.CharVarcharUtils
 import org.apache.spark.sql.connector.catalog.SupportsAtomicPartitionManagement
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{StructField, StructType}
 
 import java.util.{Map => JMap, Objects, UUID}
 
@@ -112,6 +112,7 @@ trait PaimonPartitionManagement extends SupportsAtomicPartitionManagement {
       s"Some partition names ${partitionCols.mkString("[", ", ", "]")} don't belong to " +
         s"the partition schema '${partitionSchema.sql}'."
     )
+    // DataConverter.fromPaimon: paimon 的 BinaryRow 转为 spark 的 InternalRow
     table.newReadBuilder.newScan.listPartitions.asScala
       .map(binaryRow => DataConverter.fromPaimon(binaryRow, partitionRowType))
       .filter(
@@ -119,8 +120,8 @@ trait PaimonPartitionManagement extends SupportsAtomicPartitionManagement {
           partitionCols.zipWithIndex
             .map {
               case (partitionName, index) =>
-                val internalRowIndex = partitionSchema.fieldIndex(partitionName)
-                val structField = partitionSchema.fields(internalRowIndex)
+                val internalRowIndex: Int = partitionSchema.fieldIndex(partitionName)
+                val structField: StructField = partitionSchema.fields(internalRowIndex)
                 Objects.equals(
                   sparkInternalRow.get(internalRowIndex, structField.dataType),
                   internalRow.get(index, structField.dataType))

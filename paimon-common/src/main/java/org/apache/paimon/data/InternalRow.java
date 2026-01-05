@@ -171,7 +171,14 @@ public interface InternalRow extends DataGetters {
         switch (fieldType.getTypeRoot()) {
             case CHAR:
             case VARCHAR:
-                fieldGetter = row -> row.getString(fieldPos);
+                // fieldGetter = row -> row.getString(fieldPos);
+                fieldGetter =
+                        new FieldGetter() {
+                            @Override
+                            public Object getFieldOrNull(InternalRow row) {
+                                return row.getString(fieldPos);
+                            }
+                        };
                 break;
             case BOOLEAN:
                 fieldGetter = row -> row.getBoolean(fieldPos);
@@ -259,7 +266,14 @@ public interface InternalRow extends DataGetters {
         // ordered by type root definition
         switch (fieldType.getTypeRoot()) {
             case BOOLEAN:
-                fieldSetter = (from, to) -> to.setBoolean(fieldPos, from.getBoolean(fieldPos));
+                // fieldSetter = (from, to) -> to.setBoolean(fieldPos, from.getBoolean(fieldPos));
+                fieldSetter =
+                        new FieldSetter() {
+                            @Override
+                            public void setFieldFrom(DataGetters from, DataSetters to) {
+                                to.setBoolean(fieldPos, from.getBoolean(fieldPos));
+                            }
+                        };
                 break;
             case DECIMAL:
                 final int decimalPrecision = getPrecision(fieldType);
