@@ -20,45 +20,25 @@ package org.apache.paimon.spark.sql
 
 import org.apache.paimon.spark.PaimonSparkTestBase
 
-import org.apache.spark.scheduler.{SparkListener, SparkListenerStageSubmitted}
-import org.apache.spark.sql.Row
-
-import scala.jdk.CollectionConverters._
-
 /** paimon spark test. */
-class AskwangPaimonSparkTest extends PaimonSparkTestBase {
+class AskwangPaimonDataFrameTest extends PaimonSparkTestBase {
 
+  /**
+   *   - sql 语法解析，切换到 paimon write
+   *   - write 框架实现
+   *   - data 写入，manifest 写入，commit 逻辑
+   *   - 不同 file.format 和 file.compression.
+   */
   test("insert into non-partition/no-bucket/append table") {
-    sql(s"""
-           |CREATE TABLE T (id STRING, name STRING)
-           |""".stripMargin)
-
-    sql("insert into T values(1,'wangkang'")
-
-    sql("select * from T").show(false)
-  }
-
-  test("insert into non-partition table with bucket") {
-
-  }
-
-  test("String hour with int type not partition push down") {
 
     println(sparkVersion)
 
     sql(s"""
-           |CREATE TABLE T (id STRING, hour STRING, appid string)
-           |TBLPROPERTIES ('primary-key'='id,hour', 'bucket'='2')
-           | PARTITIONED BY (hour)
+           |CREATE TABLE T (id STRING, name STRING)
+           |TBLPROPERTIES ('file.format'='parquet')
            |""".stripMargin)
 
-    sql(" insert into T values ('1', '15', '004');")
-    sql(" insert into T values ('1', '16', '004');")
-    sql(" insert into T values ('1', '17', '003');")
-    sql(" insert into T values ('2', '17', '004');")
-
-    //    sql("select * from T where hour=17 and appid ='004'").show(false)
-    sql("select * from T where hour='17' and appid ='004'").show(false)
+    val df = spark.emptyDataFrame
+    df.write.insertInto("T")
   }
-
 }

@@ -109,7 +109,7 @@ public class AppendOnlyFileStoreScan extends AbstractFileStoreScan {
                         stats.minValues(),
                         stats.maxValues(),
                         stats.nullCounts());
-
+        // 如果 result=false，表示 Predicate test 不满足，可以过滤掉这个记录
         if (!result) {
             return false;
         }

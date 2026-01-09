@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
+/** Test for {@link RowDataToObjectArrayConverter}. */
 public class RowDataToObjectArrayConverterTest {
 
     @Test

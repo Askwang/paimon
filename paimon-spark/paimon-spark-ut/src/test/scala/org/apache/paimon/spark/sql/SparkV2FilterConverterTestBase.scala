@@ -217,11 +217,24 @@ abstract class SparkV2FilterConverterTestBase extends PaimonSparkTestBase {
     assert(scanFilesCount(filter) == 1)
   }
 
+  test("V2Filter: EqualTo-2") {
+    val filter = "int_col = 1"
+    val actual = converter.convert(v2Filter(filter)).get
+    assert(actual.equals(builder.equal(3, 1)))
+    // snapshot read 1 次
+    sql(s"SELECT int_col from test_tbl WHERE $filter ORDER BY int_col").show
+    // snapshot read 2 次
+    // checkAnswer(sql(s"SELECT int_col from test_tbl WHERE $filter ORDER BY int_col"), Seq(Row(1)))
+    // snapshot read 1 次
+    // assert(scanFilesCount(filter) == 1)
+  }
+
   test("V2Filter: EqualNullSafe") {
     var filter = "int_col <=> 1"
     var actual = converter.convert(v2Filter(filter)).get
     assert(actual.equals(builder.equal(3, 1)))
-    checkAnswer(sql(s"SELECT int_col from test_tbl WHERE $filter ORDER BY int_col"), Seq(Row(1)))
+    val frame = sql(s"SELECT int_col from test_tbl WHERE $filter ORDER BY int_col")
+    checkAnswer(frame, Seq(Row(1)))
     assert(scanFilesCount(filter) == 1)
 
     filter = "int_col <=> null"

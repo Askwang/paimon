@@ -640,10 +640,12 @@ public class SparkCatalog extends SparkBaseCatalog
     protected org.apache.spark.sql.connector.catalog.Table loadSparkTable(
             Identifier ident, Map<String, String> extraOptions) throws NoSuchTableException {
         try {
+            // 加载paimon table，即 FileStoreTable
             org.apache.paimon.table.Table paimonTable = catalog.getTable(toIdentifier(ident));
             if (paimonTable instanceof FormatTable) {
                 return convertToFileTable(ident, (FormatTable) paimonTable);
             } else {
+                // 封装到 SparkTable
                 return new SparkTable(
                         copyWithSQLConf(
                                 paimonTable, catalogName, toIdentifier(ident), extraOptions));

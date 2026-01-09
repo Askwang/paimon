@@ -58,7 +58,7 @@ public class RowDataToObjectArrayConverter implements Serializable {
 
     /**
      * {@link InternalRowPartitionComputer#generatePartValues(InternalRow)} 这个类的
-     * fieldGetters[i].getFieldOrNull(rowData) 结果会根据是否是 legacyPartitionName 区分
+     * fieldGetters[i].getFieldOrNull(rowData) 结果会根据是否是 legacyPartitionName 区分.
      */
     public Object[] convert(InternalRow rowData) {
         Object[] result = new Object[fieldGetters.length];

@@ -250,6 +250,13 @@ public abstract class AbstractFileStoreScan implements FileStoreScan {
         Snapshot snapshot = manifestsResult.snapshot;
         List<ManifestFileMeta> manifests = manifestsResult.filteredManifests;
 
+        System.out.println("[askwang] All manifest file meta:");
+        {
+            for (ManifestFileMeta manifest : manifests) {
+                System.out.println(manifest);
+            }
+        }
+
         Iterator<ManifestEntry> iterator = readManifestEntries(manifests, false);
         // 所有可用的 ManifestEntry，基于这个生成读取的 splits
         List<ManifestEntry> files = new ArrayList<>();
@@ -497,6 +504,7 @@ public abstract class AbstractFileStoreScan implements FileStoreScan {
         Function<InternalRow, Integer> levelGetter = ManifestEntrySerializer.levelGetter();
         BucketFilter bucketFilter = createBucketFilter();
         // 这里的 row 就是指 ManifestEntry row，一条 ManifestEntry 的详细记录，包括 parition、bucket
+        // 由 ManifestEntrySerializer 序列化，ManifestEntry <==> ManifestEntry
         return row -> {
             if ((partitionFilter != null && !partitionFilter.test(partitionGetter.apply(row)))) {
                 return false;

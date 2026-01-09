@@ -92,6 +92,7 @@ public class FileStoreTableFactory {
             TableSchema tableSchema,
             Options dynamicOptions,
             CatalogEnvironment catalogEnvironment) {
+        // 创建 AppendOnlyFileStoreTable or PrimaryKeyFileStoreTable
         FileStoreTable table =
                 createWithoutFallbackBranch(
                         fileIO, tablePath, tableSchema, dynamicOptions, catalogEnvironment);
