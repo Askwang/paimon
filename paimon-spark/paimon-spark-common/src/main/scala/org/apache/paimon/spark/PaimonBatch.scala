@@ -37,5 +37,4 @@ case class PaimonBatch(
 
   override def createReaderFactory(): PartitionReaderFactory =
     PaimonPartitionReaderFactory(readBuilder, metadataColumns)
-
 }

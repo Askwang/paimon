@@ -64,6 +64,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -72,7 +73,7 @@ import static org.apache.paimon.Snapshot.FIRST_SNAPSHOT_ID;
 import static org.apache.paimon.deletionvectors.DeletionVectorsIndexFile.DELETION_VECTORS_INDEX;
 import static org.apache.paimon.operation.FileStoreScan.Plan.groupByPartFiles;
 import static org.apache.paimon.partition.PartitionPredicate.createPartitionPredicate;
-import static org.apache.paimon.predicate.PredicateBuilder.splitAndByPartition;
+import static org.apache.paimon.partition.PartitionPredicate.splitPartitionPredicatesAndDataPredicates;
 
 /** Implementation of {@link SnapshotReader}. */
 public class SnapshotReaderImpl implements SnapshotReader {
@@ -221,22 +222,21 @@ public class SnapshotReaderImpl implements SnapshotReader {
         int[] fieldIdxToPartitionIdx =
                 PredicateBuilder.fieldIdxToPartitionIdx(
                         tableSchema.logicalRowType(), tableSchema.partitionKeys());
-        Pair<List<Predicate>, List<Predicate>> partitionAndNonPartitionFilter =
-                splitAndByPartition(predicate, fieldIdxToPartitionIdx);
-        List<Predicate> partitionFilters = partitionAndNonPartitionFilter.getLeft();
-        List<Predicate> nonPartitionFilters = partitionAndNonPartitionFilter.getRight();
+        Pair<Optional<PartitionPredicate>, List<Predicate>> pair =
+                splitPartitionPredicatesAndDataPredicates(
+                        predicate, tableSchema.logicalRowType(), tableSchema.partitionKeys());
 
         // 注册到 manifestsReader 的 PartitionPredicate 类的 partitionFilter 中
         // manifestsReader.withPartitionFilter(predicate);
-        if (partitionFilters.size() > 0) {
-            scan.withPartitionFilter(PredicateBuilder.and(partitionFilters));
+        if (pair.getLeft().isPresent()) {
+            scan.withPartitionFilter(pair.getLeft().get());
         }
 
-        if (nonPartitionFilters.size() > 0) {
+        if (!pair.getRight().isEmpty()) {
             // 注册到 AppendOnlyFileStoreTable 的 Predicate filter 中，
             // 或者，注册到 PrimaryKeyFileStoreTable 的 Predicate keyFilter 或 Predicate valueFilter 中
             // return (scan, predicate) -> ((AppendOnlyFileStoreScan) scan).withFilter(predicate);
-            nonPartitionFilterConsumer.accept(scan, PredicateBuilder.and(nonPartitionFilters));
+            nonPartitionFilterConsumer.accept(scan, PredicateBuilder.and(pair.getRight()));
         }
         return this;
     }

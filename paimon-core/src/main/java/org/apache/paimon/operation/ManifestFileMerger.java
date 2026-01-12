@@ -200,14 +200,14 @@ public class ManifestFileMerger {
 
         PartitionPredicate predicate;
         if (deleteEntries.isEmpty()) {
-            predicate = PartitionPredicate.alwaysFalse();
+            predicate = PartitionPredicate.ALWAYS_FALSE;
         } else {
             if (partitionType.getFieldCount() > 0) {
                 // deleteEntries 涉及的分区信息
                 Set<BinaryRow> deletePartitions = computeDeletePartitions(deleteEntries);
                 predicate = PartitionPredicate.fromMultiple(partitionType, deletePartitions);
             } else {
-                predicate = PartitionPredicate.alwaysTrue();
+                predicate = PartitionPredicate.ALWAYS_TRUE;
             }
         }
 
