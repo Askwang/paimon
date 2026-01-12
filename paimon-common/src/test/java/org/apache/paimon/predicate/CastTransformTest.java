@@ -19,29 +19,29 @@
 package org.apache.paimon.predicate;
 
 import org.apache.paimon.data.BinaryString;
+import org.apache.paimon.data.GenericRow;
+import org.apache.paimon.types.DataTypes;
 
-import java.util.List;
+import org.junit.jupiter.api.Test;
 
-import static org.apache.paimon.utils.Preconditions.checkArgument;
+import java.util.Optional;
 
-/** ConcatWs {@link Transform}. */
-public class ConcatWsTransform extends StringTransform {
+import static org.assertj.core.api.Assertions.assertThat;
 
-    private static final long serialVersionUID = 1L;
+/** Test for {@link org.apache.paimon.predicate.CastTransform}. */
+public class CastTransformTest {
 
-    public ConcatWsTransform(List<Object> inputs) {
-        super(inputs);
-        checkArgument(inputs.size() >= 2);
-    }
+    @Test
+    public void testStringToInt() {
+        Optional<Transform> transform =
+                CastTransform.tryCreate(
+                        new FieldRef(0, "hour", DataTypes.STRING()), DataTypes.INT());
+        assertThat(transform.isPresent()).isTrue();
+        Transform castTransform = transform.get();
+        assertThat(castTransform.getClass()).isEqualTo(CastTransform.class);
 
-    @Override
-    public BinaryString transform(List<BinaryString> inputs) {
-        BinaryString separator = inputs.get(0);
-        return BinaryString.concatWs(separator, inputs.subList(1, inputs.size()));
-    }
-
-    @Override
-    public Transform copyWithNewInputs(List<Object> inputs) {
-        return new ConcatTransform(inputs);
+        Object result = castTransform.transform(GenericRow.of(BinaryString.fromString("1")));
+        assertThat(result).isEqualTo(1);
+        assertThat(result.getClass()).isEqualTo(Integer.class);
     }
 }

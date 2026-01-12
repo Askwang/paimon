@@ -16,23 +16,35 @@
  * limitations under the License.
  */
 
-package org.apache.paimon.manifest;
+package org.apache.paimon.predicate;
 
-import org.apache.paimon.utils.ObjectSerializer;
-import org.apache.paimon.utils.ObjectSerializerTestBase;
+import org.apache.paimon.data.BinaryString;
 
-/** Tests for {@link ManifestEntrySerializer}. */
-public class ManifestEntrySerializerTest extends ObjectSerializerTestBase<ManifestEntry> {
+import java.util.List;
 
-    private final ManifestTestDataGenerator gen = ManifestTestDataGenerator.builder().build();
+import static org.apache.paimon.utils.Preconditions.checkArgument;
 
-    @Override
-    protected ObjectSerializer<ManifestEntry> serializer() {
-        return new ManifestEntrySerializer();
+/** Upper {@link Transform}. */
+public class UpperTransform extends StringTransform {
+
+    private static final long serialVersionUID = 1L;
+
+    public UpperTransform(List<Object> inputs) {
+        super(inputs);
+        checkArgument(inputs.size() == 1);
     }
 
     @Override
-    protected ManifestEntry object() {
-        return gen.next();
+    public BinaryString transform(List<BinaryString> inputs) {
+        BinaryString string = inputs.get(0);
+        if (string == null) {
+            return null;
+        }
+        return string.toUpperCase();
+    }
+
+    @Override
+    public Transform copyWithNewInputs(List<Object> inputs) {
+        return new UpperTransform(inputs);
     }
 }

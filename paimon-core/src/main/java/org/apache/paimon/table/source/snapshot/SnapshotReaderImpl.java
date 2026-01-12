@@ -333,10 +333,11 @@ public class SnapshotReaderImpl implements SnapshotReader {
         // Askwnag-core: 这里的 plan 就是当前读取的 snapshot 和 要读取的文件数信息，基于这个生成 splits 数据
         FileStoreScan.Plan plan = scan.plan();
 
-        System.out.println("[askwang] Result scan manifest entry: ");
+        /*System.out.println("[askwang] Result scan manifest entry: ");
         for (ManifestEntry file : plan.files()) {
             System.out.println(file);
-        }
+        }*/
+
         @Nullable Snapshot snapshot = plan.snapshot();
 
         Map<BinaryRow, Map<Integer, List<ManifestEntry>>> grouped =
