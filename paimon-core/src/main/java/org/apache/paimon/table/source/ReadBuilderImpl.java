@@ -184,7 +184,7 @@ public class ReadBuilderImpl implements ReadBuilder {
         // it if `partitionFilter` is not null. So we must avoid to put part of partition filter in
         // `filter`, another part in `partitionFilter`
         // filter 可能会包含 partitionFilter，会在 SnapshotReaderImpl#withFilter 拆分出 partitionFilters 和
-        // nonPartitionFilters 部分，
+        // nonPartitionFilters 部分.
         scan.withFilter(filter).withReadType(readType).withPartitionFilter(partitionFilter);
         checkState(
                 bucketFilter == null || shardIndexOfThisSubtask == null,

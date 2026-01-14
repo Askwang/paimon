@@ -25,7 +25,9 @@ import org.apache.spark.sql.execution.QueryExecution
 /** paimon spark test. */
 class AskwangPaimonSQLTest extends PaimonSparkTestBase {
 
-  test("insert into non-partition/no-bucket/append table") {
+  // ----------------------------------- read and write ---------------------------------
+
+  test("[read/write] insert into non-partition/no-bucket/append table") {
 
     println(sparkVersion)
 
@@ -59,6 +61,40 @@ class AskwangPaimonSQLTest extends PaimonSparkTestBase {
 
     //    sql("select * from T where hour=17 and appid ='004'").show(false)
     sql("select * from T where hour='17' and appid ='004'").show(false)
+  }
+
+  test("cast(hour as int) push down") {
+
+    println(sparkVersion)
+
+    sql(s"""
+           |CREATE TABLE T (id STRING, hour STRING, appid string, day string)
+           |TBLPROPERTIES ('primary-key'='id,hour,day', 'bucket'='2')
+           | PARTITIONED BY (hour,day)
+           |""".stripMargin)
+
+    sql(" insert into T values ('1', '15', '004', '2021');")
+    sql(" insert into T values ('1', '16', '004', '2021');")
+    sql(" insert into T values ('1', '17', '003', '2025');")
+    sql(" insert into T values ('2', '17', '004', '2025');")
+
+    //    sql("select * from T where hour=17 and appid ='004'").show(false)
+//    sql("select * from T where hour='17' and appid ='004' and day = '2025' ").show(false)
+    sql("select * from T where hour='17' and id = '2' and day = '2025' ").show(false)
+  }
+
+  // ----------------------------------- merge engine ---------------------------------
+
+  test("[merge-engine] deduplicate with sequence.field") {
+    sql("""
+          | create table T (id string, merge_field bigint, phone string)
+          | TBLPROPERTIES ('primary-key'='id', 'bucket'='1',
+          | 'merge-engine'='deduplicate', 'sequence.field'='merge_field')
+          |""".stripMargin)
+
+    sql("insert into T values ('1', 1, 'a')")
+    sql("insert into T values ('1', 1, 'c')")
+    sql("insert into T values ('1', 0, 'b')")
   }
 
 }

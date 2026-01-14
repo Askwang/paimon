@@ -75,6 +75,9 @@ trait ColumnPruningAndPushDown extends Scan with Logging {
 
   lazy val readBuilder: ReadBuilder = {
     val _readBuilder: ReadBuilder = table.newReadBuilder().withReadType(readTableRowType)
+    // 由于在 PaimonBaseScanBuilder#splitPartitionPredicatesAndDataPredicates 已经拆分了 partition filter 和 data filter，
+    // 这里单独注入到 ReadBuilder 中，所以在 ReadBuilderImpl#configureScan 的 scan.withFilter(filter) 的内部调用 SnapshotReaderImpl#withFilter 时，
+    // splitPartitionPredicatesAndDataPredicates 就只处理 data filter。
     if (pushedPartitionFilters.nonEmpty) {
       _readBuilder.withPartitionFilter(PartitionPredicate.and(pushedPartitionFilters.asJava))
     }

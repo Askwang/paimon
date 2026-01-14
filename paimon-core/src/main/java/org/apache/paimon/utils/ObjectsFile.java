@@ -212,8 +212,10 @@ public abstract class ObjectsFile<T> implements SimpleFileReader<T> {
             List<V> result = new ArrayList<>();
             while (iterator.hasNext()) {
                 InternalRow row = iterator.next();
+                // ManifestFileMeta 是否满足 partition predicate 条件，比如 partition
                 if (readFilter.test(row)) {
                     V v = serializer.fromRow(row);
+                    // ManifestEntry 是否满足 data predicate 条件，比如 key/value 值
                     if (readVFilter.test(v)) {
                         result.add(v);
                     }

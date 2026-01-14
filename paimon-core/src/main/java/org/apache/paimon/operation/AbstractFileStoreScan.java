@@ -504,6 +504,8 @@ public abstract class AbstractFileStoreScan implements FileStoreScan {
         // 这里的 row 就是指 ManifestEntry row，一条 ManifestEntry 的详细记录，包括 parition、bucket
         // 由 ManifestEntrySerializer 序列化，ManifestEntry <==> ManifestEntry
         return row -> {
+            // 返回 false 表示这条 entry 可以过滤掉，不用去读取
+            // partitionFilter.test(partitionGetter.apply(row))) = true，表示 row 的数据满足 predicate，实际要读取
             if ((partitionFilter != null && !partitionFilter.test(partitionGetter.apply(row)))) {
                 return false;
             }

@@ -461,6 +461,15 @@ public interface PartitionPredicate extends Serializable {
         }
 
         RowType partitionType = tableType.project(partitionKeys);
+        // 比如 RowType<id int, hour string, appid string, day string>
+        // partitionKeys: List<'hour', 'day'>
+        // fieldIdxToPartitionIdx(): partitionIdx = [-1, 0, -1, 1]
+        // transformFieldMapping():
+        //      FieldRef(1, 'hour', string) => FieldRef(0, 'hour', string)
+        //      FieldRef(3, 'day', string) => FieldRef(1, 'day', string)
+        // askwang-todo: 这里更新了 FieldRef 的 index，在实际读取 Row 时是如何判断的？
+        // askwang-done: AbstractFileStoreScan#createEntryRowFilter() 的 partitionGetter 只获取分区的值，即只包含
+        // Row<'hour' string, 'day' string> 两个字段
         int[] partitionIdx = fieldIdxToPartitionIdx(tableType, partitionKeys);
 
         List<Predicate> partitionFilters = new ArrayList<>();

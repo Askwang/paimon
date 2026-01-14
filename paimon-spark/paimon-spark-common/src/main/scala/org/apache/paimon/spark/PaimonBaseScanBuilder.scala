@@ -84,6 +84,7 @@ abstract class PaimonBaseScanBuilder
       this.pushedSparkPredicates = pushable.toArray
     }
     if (pushablePartitionDataFilters.nonEmpty) {
+      // 拆分 partition filter 和 data filter
       val pair = splitPartitionPredicatesAndDataPredicates(
         pushablePartitionDataFilters.asJava,
         rowType,
