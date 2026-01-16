@@ -188,6 +188,7 @@ public class TableWriteImpl<T> implements InnerTableWrite, Restorable<List<State
             return null;
         }
         SinkRecord record = bucket == -1 ? toSinkRecord(row) : toSinkRecord(row, bucket);
+        // FileStoreWrite<T> write
         write.write(record.partition(), record.bucket(), recordExtractor.extract(record, rowKind));
         return record;
     }
@@ -258,6 +259,7 @@ public class TableWriteImpl<T> implements InnerTableWrite, Restorable<List<State
     @Override
     public List<CommitMessage> prepareCommit(boolean waitCompaction, long commitIdentifier)
             throws Exception {
+        // FileStoreWrite<T> write
         return write.prepareCommit(waitCompaction, commitIdentifier);
     }
 

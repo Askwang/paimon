@@ -42,12 +42,15 @@ public class RollingFileWriter<T, R> implements FileWriter<T, List<R>> {
 
     private static final int CHECK_ROLLING_RECORD_CNT = 1000;
 
+    // RollingFileWriter 的实现本质是先要用 SingleFileWriter 写
     private final Supplier<? extends SingleFileWriter<T, R>> writerFactory;
+
+    private SingleFileWriter<T, R> currentWriter = null;
+
     private final long targetFileSize;
     private final List<AbortExecutor> closedWriters;
     private final List<R> results;
 
-    private SingleFileWriter<T, R> currentWriter = null;
     private long recordCount = 0;
     private boolean closed = false;
 
@@ -65,6 +68,7 @@ public class RollingFileWriter<T, R> implements FileWriter<T, List<R>> {
     }
 
     private boolean rollingFile(boolean forceCheck) throws IOException {
+        // int CHECK_ROLLING_RECORD_CNT = 1000
         return currentWriter.reachTargetSize(
                 forceCheck || recordCount % CHECK_ROLLING_RECORD_CNT == 0, targetFileSize);
     }
@@ -77,6 +81,7 @@ public class RollingFileWriter<T, R> implements FileWriter<T, List<R>> {
                 openCurrentWriter();
             }
 
+            // SingleFileWriter<T, R> currentWriter
             currentWriter.write(row);
             recordCount += 1;
 
@@ -132,6 +137,8 @@ public class RollingFileWriter<T, R> implements FileWriter<T, List<R>> {
         // cannot store whole writer, it includes lots of memory for example column vectors to read
         // and write
         closedWriters.add(currentWriter.abortExecutor());
+        // SingleFileWriter<T, R> currentWriter （即 RowDataFileWriter）
+        // currentWriter.result() 返回 DataFileMeta
         results.add(currentWriter.result());
         currentWriter = null;
     }

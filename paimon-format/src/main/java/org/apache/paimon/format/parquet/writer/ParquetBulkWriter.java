@@ -44,6 +44,7 @@ public class ParquetBulkWriter implements FormatWriter {
 
     @Override
     public void addElement(InternalRow datum) throws IOException {
+        // ParquetWriter<InternalRow> parquetWriter
         parquetWriter.write(datum);
     }
 

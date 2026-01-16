@@ -151,6 +151,7 @@ public abstract class AbstractFileStoreWrite<T> implements FileStoreWrite<T> {
 
     @Override
     public void write(BinaryRow partition, int bucket, T data) throws Exception {
+        // WriterContainer 封装了 RecordWriter，即 AppendOnlyWriter/MergeTreeWriter
         WriterContainer<T> container = getWriterWrapper(partition, bucket);
         container.writer.write(data);
         if (container.dynamicBucketMaintainer != null) {
@@ -203,15 +204,18 @@ public abstract class AbstractFileStoreWrite<T> implements FileStoreWrite<T> {
         Iterator<Map.Entry<BinaryRow, Map<Integer, WriterContainer<T>>>> partIter =
                 writers.entrySet().iterator();
         while (partIter.hasNext()) {
+            // <partition, <bucket, WriterContainer>>
             Map.Entry<BinaryRow, Map<Integer, WriterContainer<T>>> partEntry = partIter.next();
             BinaryRow partition = partEntry.getKey();
             Iterator<Map.Entry<Integer, WriterContainer<T>>> bucketIter =
                     partEntry.getValue().entrySet().iterator();
             while (bucketIter.hasNext()) {
+                // <bucket, WriterContainer>
                 Map.Entry<Integer, WriterContainer<T>> entry = bucketIter.next();
                 int bucket = entry.getKey();
                 WriterContainer<T> writerContainer = entry.getValue();
 
+                // 某个 <partition, bucket> 中 WriterContainer(RecordWriter) 写的结果进行 prepareCommit
                 CommitIncrement increment = writerContainer.writer.prepareCommit(waitCompaction);
                 List<IndexFileMeta> newIndexFiles = new ArrayList<>();
                 if (writerContainer.dynamicBucketMaintainer != null) {
@@ -450,6 +454,8 @@ public abstract class AbstractFileStoreWrite<T> implements FileStoreWrite<T> {
                         null,
                         compactExecutor(),
                         dvMaintainer);
+
+        // RecordWriter 创建后，sinkWriter.setMemoryPool 会初始化 BufferedSinkWriter 的 RowBuffer writeBuffer
         notifyNewWriter(writer);
 
         Snapshot previousSnapshot = restored.snapshot();

@@ -97,6 +97,8 @@ public abstract class BaseAppendFileStoreWrite extends MemoryFileStoreWrite<Inte
         this.rowType = rowType;
         this.writeType = rowType;
         this.writeCols = null;
+        // 根据 file.format 属性创建 FileFormat
+        // FileFormat#createWriterFactory 构建对应的 FormatWriterFactory
         this.fileFormat = fileFormat(options);
         this.pathFactory = pathFactory;
 

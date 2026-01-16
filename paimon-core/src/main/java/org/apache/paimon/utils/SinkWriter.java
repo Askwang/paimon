@@ -70,8 +70,10 @@ public interface SinkWriter<T> {
         @Override
         public boolean write(T data) throws IOException {
             if (writer == null) {
+                // Supplier<RollingFileWriter<T, DataFileMeta>> writerSupplier
                 writer = writerSupplier.get();
             }
+            // RollingFileWriter<T, DataFileMeta> writer
             writer.write(data);
             return true;
         }
@@ -88,6 +90,8 @@ public interface SinkWriter<T> {
             List<DataFileMeta> flushedFiles = new ArrayList<>();
             if (writer != null) {
                 writer.close();
+                // RollingFileWriter<T, DataFileMeta> writer 写入的一个或多个文件
+                // AppendOnlyWriter#createRollingRowWriter() 确定的 <T, R> 类型，RollingFileWriter<InternalRow, DataFileMeta>
                 flushedFiles.addAll(writer.result());
                 writer = null;
             }

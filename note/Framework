@@ -1,0 +1,68 @@
+FileStoreTable/FileStore/FileStoreWrite
+- FileStoreTable 在加载 Table 的时候就确定了，其他的对象创建前提都是基于这个。
+- FileStoreTable 的 store() 方法获取对应的 FileStore。
+- TableWriteImpl write.write(row) 中的 write 为 FileStoreWrite。
+- FileStoreWrite#createWriterContainer() 中创建 RecordWriter。
+
+(I)InnerTable
+    (I)ReadonlyTable
+        (C)system tables
+    (I)DataTable
+        (C)ReadOptimizedTable
+        (I)FileStoreTable
+            (C)AbstractFileStoreTable
+                (C)AppendOnlyFileStoreTable
+                (C)PrimaryKeyFileStoreTable
+
+(I)FileStore
+    (C)AbstractFileStore
+        (C)KeyValueFileStore
+        (C)AppendOnlyFileStore
+
+(I)WriteBuilder
+    (I)StreamWriteBuilder
+        (C)StreamWriteBuilderImpl
+    (I)BatchWriteBuilder
+        (C)BatchWriteBuilderImpl
+
+(I)TableWrite
+    (I)BatchTableWrite
+        (I)InnerTableWrite
+            (C)TableWriteImpl   // 封装 FileStoreWrite<T> write
+    (I)StreamTableWrite
+        (I)InnerTableWrite
+            (C)TableWriteImpl
+
+(I)FileStoreWrite
+    (C)AbstractFileStoreWrite   // write(row) 时构建 WriterContainer(RecordWriter) 对象
+        (C)MemoryFileStoreWrite
+            (C)KeyValueFileStoreWrite
+            (C)BaseAppendFileStoreWrite
+                (C)AppendFileStoreWrite
+                (C)BucketedAppendFileStoreWrite
+
+(I)RecordWriter
+    (I)BatchRecordWriter
+        (C)AppendOnlyWriter     // 封装 SinkWriter<InternalRow> sinkWriter
+    (C)MergeTreeWriter
+    (C)PostponeBucketWriter
+
+(I)MemoryOwner
+    (C)AppendOnlyWriter
+    (C)MergeTreeWriter
+    (C)PostponeBucketWriter
+
+(I)SinkWriter  // AppendOnlyWriter
+    (C)BufferedSinkWriter
+    (C)DirectSinkWriter     // 封装 Supplier<RollingFileWriter<T, DataFileMeta>> writerSupplier
+
+(I)FileWriter
+    (C)RollingFileWriter
+        (C)RowDataRollingFileWriter     // 封装 Supplier<? extends SingleFileWriter<T, R>> writerFactory
+    (C)SingleFileWriter     // 根据 FormatWriterFactory.create 对应 FormatWriter
+        (C)ManifestEntryWriter
+        (C)StatsCollectingSingleFileWriter
+            (C)RowDataFileWriter
+            (C)KeyValueDataFileWriter
+                (C)KeyValueDataFileWriterImpl
+                (C)KeyValueThinDataFileWriterImpl

@@ -125,9 +125,10 @@ case class PaimonSparkWriter(table: FileStoreTable, writeRowLineage: Boolean = f
       dataFrame.mapPartitions {
         iter =>
           {
-            val write = newWrite()
+            val write: SparkTableWrite = newWrite()
             try {
               iter.foreach(row => write.write(row, row.getInt(bucketColIdx)))
+              // prepareCommit 和 reportOutputMetrics
               write.finish()
             } finally {
               write.close()
@@ -269,13 +270,13 @@ case class PaimonSparkWriter(table: FileStoreTable, writeRowLineage: Boolean = f
         if (paimonExtensionEnabled && BucketFunction.supportsTable(table)) {
           // Topology: input -> shuffle by partition & bucket
           val bucketNumber = coreOptions.bucket()
-          val bucketKeyCol = tableSchema
+          val bucketKeyCol: Seq[Column] = tableSchema
             .bucketKeys()
             .asScala
             .map(tableSchema.fieldNames().indexOf(_))
             .map(x => col(data.schema.fieldNames(x)))
             .toSeq
-          val args = Seq(
+          val args: Seq[Column] = Seq(
             lit(new CoreOptions(tableSchema.options()).bucketFunctionType().toString),
             lit(bucketNumber)) ++ bucketKeyCol
           val repartitioned =
@@ -357,7 +358,7 @@ case class PaimonSparkWriter(table: FileStoreTable, writeRowLineage: Boolean = f
   }
 
   def commit(commitMessages: Seq[CommitMessage]): Unit = {
-    val tableCommit = writeBuilder.newCommit()
+    val tableCommit: BatchTableCommit = writeBuilder.newCommit()
     try {
       tableCommit.commit(commitMessages.toList.asJava)
     } catch {

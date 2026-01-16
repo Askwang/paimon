@@ -38,6 +38,7 @@ public final class BinaryRowWriter extends AbstractBinaryWriter {
         this.fixedSize = row.getFixedLengthPartSize();
         this.cursor = fixedSize;
 
+        // 初始化 BinaryRow
         this.segment = MemorySegment.wrap(new byte[fixedSize + initialSize]);
         this.row = row;
         this.row.pointTo(segment, 0, segment.size());

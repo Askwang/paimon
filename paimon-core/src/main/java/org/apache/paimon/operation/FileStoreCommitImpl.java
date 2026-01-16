@@ -309,6 +309,10 @@ public class FileStoreCommitImpl implements FileStoreCommit {
                 compactDvIndexFiles);
         try {
             List<SimpleFileEntry> appendSimpleEntries = SimpleFileEntry.from(appendTableFiles);
+            // 这里两个 if 会尝试做两次 commit，一次是 CommitKind.APPEND，一次是 CommitKind.COMPACT
+            // 为什么可以在 commit APPEND 后直接 commit COMPACT？
+            // 因为 append 增加的文件会直接添加到 CompactManager 的 toCompact 中，
+            // compact 合并的是这次 APPEND commit 的最新文件，基于这个文件进行合并和删除是没问题的
             if (!ignoreEmptyCommit
                     || !appendTableFiles.isEmpty()
                     || !appendChangelog.isEmpty()

@@ -232,12 +232,16 @@ public class AppendOnlyWriter implements BatchRecordWriter, MemoryOwner {
 
     @VisibleForTesting
     void flush(boolean waitForLatestCompaction, boolean forcedFullCompaction) throws Exception {
+        // 拿到写入存储的文件
         List<DataFileMeta> flushedFiles = sinkWriter.flush();
 
+        // 写入的文件添加到 compactManager 的 toCompact 中
         // add new generated files
         flushedFiles.forEach(compactManager::addNewFile);
         trySyncLatestCompaction(waitForLatestCompaction);
+        // 如果有合并则会触发 minor/full 合并，合并是单独的 commit
         compactManager.triggerCompaction(forcedFullCompaction);
+
         newFiles.addAll(flushedFiles);
     }
 

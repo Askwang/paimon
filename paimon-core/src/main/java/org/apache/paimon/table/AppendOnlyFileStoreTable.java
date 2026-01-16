@@ -127,6 +127,9 @@ public class AppendOnlyFileStoreTable extends AbstractFileStoreTable {
 
     @Override
     public TableWriteImpl<InternalRow> newWrite(String commitUser, @Nullable Integer writeId) {
+        // BucketMode.BUCKET_UNAWARE => AppendFileStoreWrite
+        // BucketMode.HASH_FIXED => BucketedAppendFileStoreWrite
+        // 其中 AppendFileStoreWrite extends BaseAppendFileStoreWrite
         BaseAppendFileStoreWrite writer = store().newWrite(commitUser, writeId);
         return new TableWriteImpl<>(
                 rowType(),

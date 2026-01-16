@@ -133,7 +133,7 @@ private case class WriterFactory(writeSchema: StructType, batchWriteBuilder: Bat
   extends DataWriterFactory {
 
   override def createWriter(partitionId: Int, taskId: Long): DataWriter[InternalRow] = {
-    val batchTableWrite = batchWriteBuilder.newWrite()
+    val batchTableWrite: BatchTableWrite = batchWriteBuilder.newWrite()
     new PaimonDataWriter(batchTableWrite, writeSchema)
   }
 }
@@ -151,6 +151,7 @@ private class PaimonDataWriter(batchTableWrite: BatchTableWrite, writeSchema: St
   }
 
   override def write(record: InternalRow): Unit = {
+    // askwang-todo: 如何区分不同的bucket类型写入，像PaimonSparkWriter的各种write bucket
     batchTableWrite.write(rowConverter.apply(record))
   }
 

@@ -129,6 +129,7 @@ public class ParquetWriter<T> implements Closeable {
 
     public void write(T object) throws IOException {
         try {
+            // InternalParquetRecordWriter<T> writer
             writer.write(object);
         } catch (InterruptedException e) {
             throw new IOException(e);

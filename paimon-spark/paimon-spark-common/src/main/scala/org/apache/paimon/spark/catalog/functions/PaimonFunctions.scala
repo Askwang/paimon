@@ -44,7 +44,7 @@ object PaimonFunctions {
   val MOD_BUCKET: String = "mod_bucket"
   val MAX_PT: String = "max_pt"
 
-  private val FUNCTIONS = ImmutableMap.of(
+  private val FUNCTIONS: ImmutableMap[String, UnboundFunction] = ImmutableMap.of(
     PAIMON_BUCKET,
     new BucketFunction(PAIMON_BUCKET, BucketFunctionType.DEFAULT),
     MOD_BUCKET,
@@ -75,6 +75,7 @@ object PaimonFunctions {
  * params arg0: bucket number, arg1...argn bucket keys.
  */
 class BucketFunction(NAME: String, bucketFunctionType: BucketFunctionType) extends UnboundFunction {
+
   override def bind(inputType: StructType): BoundFunction = {
     assert(inputType.fields(0).dataType == IntegerType, "bucket number field must be integer type")
 
@@ -86,6 +87,8 @@ class BucketFunction(NAME: String, bucketFunctionType: BucketFunctionType) exten
       new SparkInternalRowWrapper(-1, inputType, inputType.fields.length)
     val bucketFunc: bucket.BucketFunction =
       bucket.BucketFunction.create(bucketFunctionType, bucketKeyRowType)
+
+    // UnboundFunction#bind() => BoundFunction
     new ScalarFunction[Int]() {
 
       override def inputTypes: Array[DataType] = inputType.fields.map(_.dataType)

@@ -23,7 +23,7 @@ import org.apache.paimon.options.Options
 import org.apache.paimon.spark._
 import org.apache.paimon.spark.catalyst.analysis.expressions.ExpressionHelper
 import org.apache.paimon.table.FileStoreTable
-
+import org.apache.paimon.table.sink.CommitMessage
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
@@ -64,7 +64,7 @@ case class WriteIntoPaimonTable(
     if (overwritePartition != null) {
       writer.writeBuilder.withOverwrite(overwritePartition.asJava)
     }
-    val commitMessages = writer.write(data)
+    val commitMessages: Seq[CommitMessage] = writer.write(data)
     writer.commit(commitMessages)
 
     Seq.empty

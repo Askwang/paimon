@@ -39,7 +39,7 @@ case class SparkTableWrite(
   private val ioManager: IOManager = SparkUtils.createIOManager
 
   private val write: BatchTableWrite = {
-    val _write = writeBuilder.newWrite()
+    val _write: BatchTableWrite = writeBuilder.newWrite()
     _write.withIOManager(ioManager)
     if (writeRowLineage) {
       _write.withWriteType(writeType)
@@ -57,6 +57,7 @@ case class SparkTableWrite(
   }
 
   def write(row: Row, bucket: Int): Unit = {
+    // val _write: BatchTableWrite = writeBuilder.newWrite()
     write.write(toPaimonRow(row), bucket)
   }
 
@@ -65,6 +66,7 @@ case class SparkTableWrite(
     var recordsWritten = 0L
     val commitMessages = new ListBuffer[Array[Byte]]()
     val serializer = new CommitMessageSerializer()
+    // val _write: BatchTableWrite
     write.prepareCommit().asScala.foreach {
       case message: CommitMessageImpl =>
         message.newFilesIncrement().newFiles().asScala.foreach {

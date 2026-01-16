@@ -68,6 +68,7 @@ public class BatchWriteBuilderImpl implements BatchWriteBuilder {
 
     @Override
     public BatchTableWrite newWrite() {
+        // InnerTable table，即 FileStoreTable
         return table.newWrite(commitUser).withIgnorePreviousFiles(staticPartition != null);
     }
 

@@ -129,6 +129,7 @@ public abstract class SingleFileWriter<T, R> implements FileWriter<T, R> {
 
         try {
             InternalRow rowData = converter.apply(record);
+            // FormatWriter writer
             writer.addElement(rowData);
             recordCount++;
             return rowData;
@@ -145,6 +146,7 @@ public abstract class SingleFileWriter<T, R> implements FileWriter<T, R> {
     }
 
     public boolean reachTargetSize(boolean suggestedCheck, long targetSize) throws IOException {
+        // FormatWriter writer
         return writer.reachTargetSize(suggestedCheck, targetSize);
     }
 

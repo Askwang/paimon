@@ -34,12 +34,12 @@ class AskwangPaimonSQLTest extends PaimonSparkTestBase {
     withSparkSQLConf("spark.sql.planChangeLog.level" -> "TRACE") {
       sql(s"""
              |CREATE TABLE T (id int, name string)
-             |TBLPROPERTIES ('file.format'='parquet')
+             |TBLPROPERTIES ('bucket-key' = 'id', 'bucket' = '1', 'file.format'='parquet')
              |""".stripMargin)
 
-      val df = sql("insert into T values(1,'wangkang')")
+      val df = sql("insert into T values (1,'zhangsan'),(2, 'lisi')")
 
-      AskwangUtils.printNumberTree(df.queryExecution)
+      // AskwangUtils.printNumberTree(df.queryExecution)
       sql("select * from T").show(false)
     }
   }
