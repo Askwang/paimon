@@ -80,7 +80,7 @@ public class CompactManifestProcedure extends BaseProcedure {
 
         Table table = loadSparkTable(tableIdent).getTable();
         HashMap<String, String> dynamicOptions = new HashMap<>();
-        // askwang-todo: 添加 COMMIT_USER_PREFIX 属性
+        // askwang-done: 添加 COMMIT_USER_PREFIX 属性
         ProcedureUtils.putIfNotEmpty(
                 dynamicOptions, CoreOptions.COMMIT_USER_PREFIX.key(), COMMIT_USER);
         ProcedureUtils.putAllOptions(dynamicOptions, options);

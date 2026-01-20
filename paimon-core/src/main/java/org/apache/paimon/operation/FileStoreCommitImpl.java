@@ -1235,7 +1235,7 @@ public class FileStoreCommitImpl implements FileStoreCommit {
                                 commitTimeout, retryCount));
             }
 
-            // askwang-todo: 添加 commit failed 的日志
+            // askwang-done: 添加 commit failed 的日志
             LOG.info("Commit failed for compact manifest, will be retried again.");
 
             commitRetryWait(retryCount);
