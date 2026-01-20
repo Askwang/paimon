@@ -113,9 +113,12 @@ trait PaimonPartitionManagement extends SupportsAtomicPartitionManagement {
         s"the partition schema '${partitionSchema.sql}'."
     )
     // DataConverter.fromPaimon: paimon 的 BinaryRow 转为 spark 的 InternalRow
+    // askwang-todo: 每一条 internalRow 都要 list 所有 partitions
     table.newReadBuilder.newScan.listPartitions.asScala
       .map(binaryRow => DataConverter.fromPaimon(binaryRow, partitionRowType))
       .filter(
+        // internalRow 是方法的参数，是一个分区信息的值，比如 Map<<day,2026>,<hour,01>>, internalRow=GenericInternalRow(Seq(2026,01))
+        // sparkInternalRow 是 paimon listPartitions 中的一行
         sparkInternalRow => {
           partitionCols.zipWithIndex
             .map {
@@ -126,7 +129,7 @@ trait PaimonPartitionManagement extends SupportsAtomicPartitionManagement {
                   sparkInternalRow.get(internalRowIndex, structField.dataType),
                   internalRow.get(index, structField.dataType))
             }
-            .forall(identity)
+            .forall(identity) // Array[Boolean] 结果全为 true
         })
       .toArray
   }

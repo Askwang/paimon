@@ -258,6 +258,7 @@ public class SparkTypeUtils {
         public DataType visit(RowType rowType) {
             List<StructField> fields = new ArrayList<>(rowType.getFieldCount());
             for (DataField field : rowType.getFields()) {
+                // 底层维护一个 map 结构，存放 metadata 的 <k,v> 信息
                 MetadataBuilder metadataBuilder = new MetadataBuilder();
                 if (field.defaultValue() != null) {
                     metadataBuilder.putString(CURRENT_DEFAULT_COLUMN_METADATA_KEY, field.defaultValue());
@@ -269,6 +270,7 @@ public class SparkTypeUtils {
                                 field.type().isNullable(),
                                 metadataBuilder.build()
                                 );
+                // 更新 StructField 的 metadata 信息
                 structField =
                         Optional.ofNullable(field.description())
                                 .map(structField::withComment)

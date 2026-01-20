@@ -91,7 +91,8 @@ public interface SinkWriter<T> {
             if (writer != null) {
                 writer.close();
                 // RollingFileWriter<T, DataFileMeta> writer 写入的一个或多个文件
-                // AppendOnlyWriter#createRollingRowWriter() 确定的 <T, R> 类型，RollingFileWriter<InternalRow, DataFileMeta>
+                // AppendOnlyWriter#createRollingRowWriter() 确定的 <T, R>
+                // 类型，RollingFileWriter<InternalRow, DataFileMeta>
                 flushedFiles.addAll(writer.result());
                 writer = null;
             }

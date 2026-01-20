@@ -44,26 +44,7 @@ class AskwangPaimonSQLTest extends PaimonSparkTestBase {
     }
   }
 
-  test("String hour with int type not partition push down") {
-
-    println(sparkVersion)
-
-    sql(s"""
-           |CREATE TABLE T (id STRING, hour STRING, appid string)
-           |TBLPROPERTIES ('primary-key'='id,hour', 'bucket'='2')
-           | PARTITIONED BY (hour)
-           |""".stripMargin)
-
-    sql(" insert into T values ('1', '15', '004');")
-    sql(" insert into T values ('1', '16', '004');")
-    sql(" insert into T values ('1', '17', '003');")
-    sql(" insert into T values ('2', '17', '004');")
-
-    //    sql("select * from T where hour=17 and appid ='004'").show(false)
-    sql("select * from T where hour='17' and appid ='004'").show(false)
-  }
-
-  test("cast(hour as int) push down") {
+  test("cast(hour as int) not push down") {
 
     println(sparkVersion)
 
@@ -78,9 +59,38 @@ class AskwangPaimonSQLTest extends PaimonSparkTestBase {
     sql(" insert into T values ('1', '17', '003', '2025');")
     sql(" insert into T values ('2', '17', '004', '2025');")
 
-    //    sql("select * from T where hour=17 and appid ='004'").show(false)
-//    sql("select * from T where hour='17' and appid ='004' and day = '2025' ").show(false)
+    // sql("select * from T where hour=17 and appid ='004'").show(false)
+    // sql("select * from T where hour='17' and appid ='004' and day = '2025' ").show(false)
     sql("select * from T where hour='17' and id = '2' and day = '2025' ").show(false)
+  }
+
+  test("alter table drop partition") {
+    println(sparkVersion)
+
+    sql(s"""
+           |CREATE TABLE T (id STRING, hour STRING, appid string, day string)
+           |TBLPROPERTIES ('primary-key'='id,hour,day', 'bucket'='2')
+           | PARTITIONED BY (hour,day)
+           |""".stripMargin)
+
+    // drop partition (day='2025-01-15')，删除 2 个分区
+    // drop partition (hour='16')，删除 2 个分区
+    // drop partition (hour='17' ,day='2026-01-16')，删除 1 个分区
+    // drop partition (hour='01'), partition(day='2026-01-01')
+    sql(" insert into T values ('1', '15', '004', '2026-01-15');")
+    sql(" insert into T values ('1', '16', '004', '2026-01-15');")
+    sql(" insert into T values ('1', '16', '003', '2026-01-16');")
+    sql(" insert into T values ('2', '17', '004', '2026-01-16');")
+    sql("select * from `T$partitions`").show(false)
+
+    val df = sql(
+      "alter table T drop partition (day='2026-01-15', hour = '16'), partition (day='2026-01-16', hour = '16')")
+    df.explain(true)
+    // sql("select * from `T$partitions`").show(false)
+    sql("show partitions T").show(false)
+
+//    sql("alter table T drop partition (day='2025-01-16')")
+//    sql("select * from `T$partitions`").show(false)
   }
 
   // ----------------------------------- merge engine ---------------------------------

@@ -24,6 +24,7 @@ import org.apache.paimon.spark._
 import org.apache.paimon.spark.catalyst.analysis.expressions.ExpressionHelper
 import org.apache.paimon.table.FileStoreTable
 import org.apache.paimon.table.sink.CommitMessage
+
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
