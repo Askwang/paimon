@@ -227,6 +227,10 @@ public interface PartitionPredicate extends Serializable {
             @SuppressWarnings("unchecked")
             Serializer<Object>[] serializers = new Serializer[fieldNum];
             FullSimpleColStatsCollector[] collectors = new FullSimpleColStatsCollector[fieldNum];
+            // 分区字段的 Predicate
+            // 比如分区字段为<hour, day>, partitions 为 Set<<'16', '2026-01-15'>, <'16', '2026-01-16'>
+            // min[0]: >= '16', max[0]: <= '16'
+            // min[1]: >= '2025-01-15', max[1]: <= '2025-01-16'
             min = new Predicate[fieldNum];
             max = new Predicate[fieldNum];
             for (int i = 0; i < fieldNum; i++) {
@@ -234,6 +238,7 @@ public interface PartitionPredicate extends Serializable {
                 collectors[i] = new FullSimpleColStatsCollector();
             }
             for (BinaryRow part : partitions) {
+                // 分区值更新到 FullSimpleColStatsCollector
                 Object[] fields = converter.convert(part);
                 for (int i = 0; i < fields.length; i++) {
                     collectors[i].collect(fields[i], serializers[i]);
@@ -274,6 +279,7 @@ public interface PartitionPredicate extends Serializable {
             }
 
             for (int i = 0; i < fieldNum; i++) {
+                // 比如字段 day，如果 min[0].test 和 max[0].test 有一个不满足，则表示分区值不符合要求，可以直接过滤掉
                 if (!min[i].test(rowCount, minValues, maxValues, nullCounts)
                         || !max[i].test(rowCount, minValues, maxValues, nullCounts)) {
                     return false;
@@ -428,6 +434,7 @@ public interface PartitionPredicate extends Serializable {
         InternalRowSerializer serializer = new InternalRowSerializer(partitionType);
         List<BinaryRow> result = new ArrayList<>();
         for (Map<String, String> spec : partitions) {
+            // spec 的分区 value 封装成 GenericRow
             GenericRow row = convertSpecToInternalRow(spec, partitionType, defaultPartValue);
             result.add(serializer.toBinaryRow(row).copy());
         }

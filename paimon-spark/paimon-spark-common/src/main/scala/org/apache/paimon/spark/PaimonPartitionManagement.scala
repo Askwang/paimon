@@ -66,7 +66,10 @@ trait PaimonPartitionManagement extends SupportsAtomicPartitionManagement {
   override def dropPartitions(rows: Array[InternalRow]): Boolean = {
     table match {
       case fileStoreTable: FileStoreTable =>
-        val partitions = toPaimonPartitions(rows).toSeq.asJava
+        val partitions: java.util.List[java.util.Map[String, String]] =
+          toPaimonPartitions(rows).toSeq.asJava
+
+        // askwang-todo: partitionHandler 什么情况下不为 null
         val partitionHandler = fileStoreTable.catalogEnvironment().partitionHandler()
         if (partitionHandler != null) {
           try {

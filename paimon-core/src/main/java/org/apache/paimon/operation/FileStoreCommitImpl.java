@@ -579,6 +579,7 @@ public class FileStoreCommitImpl implements FileStoreCommit {
                     partitions.stream().map(Objects::toString).collect(Collectors.joining(",")));
         }
 
+        // askwang-todo: fullMode 什么情况下为 false
         boolean fullMode =
                 partitions.stream().allMatch(part -> part.size() == partitionType.getFieldCount());
         PartitionPredicate partitionFilter;
@@ -587,6 +588,8 @@ public class FileStoreCommitImpl implements FileStoreCommit {
                     createBinaryPartitions(partitions, partitionType, partitionDefaultName);
             partitionFilter = PartitionPredicate.fromMultiple(partitionType, binaryPartitions);
         } else {
+            // 每个 partSpec 都是一个单独的 predicate，多个之间用 or 串联
+            // partSpec<<day='2025-01-01', hour='01'>, <day='2025-01-02', hour='02'>> 会创建两个 predicate
             // partitions may be partial partition fields, so here must to use predicate way.
             Predicate predicate =
                     partitions.stream()
