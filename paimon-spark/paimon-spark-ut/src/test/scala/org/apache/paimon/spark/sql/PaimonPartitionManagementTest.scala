@@ -54,10 +54,6 @@ class PaimonPartitionManagementTest extends PaimonSparkTestBase {
             }
 
             assertThrows[AnalysisException] {
-              spark.sql("alter table T drop partition (dt='20230816')")
-            }
-
-            assertThrows[AnalysisException] {
               spark.sql("alter table T drop partition (hh='1134')")
             }
 

@@ -589,7 +589,8 @@ public class FileStoreCommitImpl implements FileStoreCommit {
             partitionFilter = PartitionPredicate.fromMultiple(partitionType, binaryPartitions);
         } else {
             // 每个 partSpec 都是一个单独的 predicate，多个之间用 or 串联
-            // partSpec<<day='2025-01-01', hour='01'>, <day='2025-01-02', hour='02'>> 会创建两个 predicate
+            // partSpec<<day='2025-01-01', hour='01'>, <day='2025-01-02', hour='02'>> 会创建两个
+            // predicate
             // partitions may be partial partition fields, so here must to use predicate way.
             Predicate predicate =
                     partitions.stream()
