@@ -36,10 +36,10 @@ case class PaimonDropPartitionsExec(
 
   override protected def run(): Seq[InternalRow] = {
     val partitionSchema = table.asPartitionable.partitionSchema()
-    val (partialPartSpecs, fullPartSpecs) =
+    val (partialPartSpecs: Seq[ResolvedPartitionSpec], fullPartSpecs) =
       partSpecs.partition(_.ident.numFields != partitionSchema.length)
 
-    val (existsPartIdents, nonExistsPartIdents) =
+    val (existsPartIdents: Seq[InternalRow], nonExistsPartIdents) =
       fullPartSpecs.map(_.ident).partition(table.partitionExists)
 
     if (nonExistsPartIdents.nonEmpty && !ignoreIfNotExists) {
@@ -52,7 +52,7 @@ case class PaimonDropPartitionsExec(
     val allExistsPartIdents = existsPartIdents ++ partialPartSpecs.flatMap(expendPartialSpec)
 
     val isTableAltered: Boolean = if (allExistsPartIdents.nonEmpty) {
-      // askwang-todo: 按批次 drop partitions
+      // askwang-todo: 按批次 drop partitions，参考 spark DropPartitionExec
       allExistsPartIdents
         .map(
           partIdents =>

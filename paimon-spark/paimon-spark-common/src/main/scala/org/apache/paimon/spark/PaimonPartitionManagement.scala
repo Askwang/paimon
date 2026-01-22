@@ -66,6 +66,8 @@ trait PaimonPartitionManagement extends SupportsAtomicPartitionManagement {
   override def dropPartitions(rows: Array[InternalRow]): Boolean = {
     table match {
       case fileStoreTable: FileStoreTable =>
+
+        // spark InternalRow => Map partSpec
         val partitions: java.util.List[java.util.Map[String, String]] =
           toPaimonPartitions(rows).toSeq.asJava
 
@@ -142,10 +144,11 @@ trait PaimonPartitionManagement extends SupportsAtomicPartitionManagement {
       maps: Array[JMap[String, String]]): Unit = {
     table match {
       case fileStoreTable: FileStoreTable =>
-        val partitions = toPaimonPartitions(rows)
+        val partitions: Array[java.util.Map[String, String]] = toPaimonPartitions(rows)
         val partitionHandler = fileStoreTable.catalogEnvironment().partitionHandler()
         if (partitionHandler != null) {
           try {
+            // 默认 add partition 不做处理，除非要添加到 hms 元数据
             if (fileStoreTable.coreOptions().partitionedTableInMetastore()) {
               partitionHandler.createPartitions(partitions.toSeq.asJava)
             }

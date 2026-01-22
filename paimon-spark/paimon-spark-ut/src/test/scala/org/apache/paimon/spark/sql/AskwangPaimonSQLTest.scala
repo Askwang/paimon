@@ -93,6 +93,23 @@ class AskwangPaimonSQLTest extends PaimonSparkTestBase {
 //    sql("select * from `T$partitions`").show(false)
   }
 
+
+  test("alter table add partition") {
+    println(sparkVersion)
+
+    sql(
+      s"""
+         |CREATE TABLE T (id STRING, appid string, day string, hour STRING)
+         |TBLPROPERTIES ('primary-key'='id,hour,day', 'bucket'='2')
+         | PARTITIONED BY (hour,day)
+         |""".stripMargin)
+
+    // add partition 多个分区中间没有 ','
+    sql("alter table T add partition (day='2026-01-01', hour = '01') partition (day='2026-01-16', hour = '02')")
+
+    sql("show partitions T").show(false)
+  }
+
   // ----------------------------------- merge engine ---------------------------------
 
   test("[merge-engine] deduplicate with sequence.field") {
