@@ -29,7 +29,6 @@ import org.apache.paimon.format.SimpleColStats;
 import org.apache.paimon.predicate.Predicate;
 import org.apache.paimon.predicate.PredicateBuilder;
 import org.apache.paimon.statistics.FullSimpleColStatsCollector;
-import org.apache.paimon.types.DataField;
 import org.apache.paimon.types.RowType;
 import org.apache.paimon.utils.Pair;
 import org.apache.paimon.utils.Preconditions;
@@ -394,14 +393,16 @@ public interface PartitionPredicate extends Serializable {
         return predicate;
     }
 
-    static Predicate createPartitionPredicateAskang(RowType rowType, Map<String, Object> partitions) {
+    static Predicate createPartitionPredicateAskang(
+            RowType rowType, Map<String, Object> partitions) {
         PredicateBuilder builder = new PredicateBuilder(rowType);
         List<String> fieldNames = rowType.getFieldNames();
         Predicate predicate = null;
         for (Map.Entry<String, Object> partition : partitions.entrySet()) {
             Object literal = partition.getValue();
             int idx = fieldNames.indexOf(partition.getKey());
-            Predicate predicateTmp = literal == null ? builder.isNull(idx) :builder.equal(idx, literal);
+            Predicate predicateTmp =
+                    literal == null ? builder.isNull(idx) : builder.equal(idx, literal);
             if (predicate == null) {
                 predicate = predicateTmp;
             } else {

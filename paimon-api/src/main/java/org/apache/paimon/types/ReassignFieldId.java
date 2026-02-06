@@ -29,6 +29,10 @@ public class ReassignFieldId extends DataTypeDefaultVisitor<DataType> {
         this.fieldId = fieldId;
     }
 
+    /**
+     * 访问者模式，本质是将对象和操作逻辑进行分离
+     * DataType 为操作的对象，ReassignFieldId extends DataTypeDefaultVisitor 为操作的行为.
+     */
     public static DataType reassign(DataType input, AtomicInteger fieldId) {
         return input.accept(new ReassignFieldId(fieldId));
     }
@@ -60,6 +64,8 @@ public class ReassignFieldId extends DataTypeDefaultVisitor<DataType> {
                         f ->
                                 builder.field(
                                         f.name(),
+                                        // askwang-done: f.type() 本身就是 paimon DataType，为什么又要访问一遍
+                                        // DataField 的 type 可能还是复杂类型，需要递归处理内部的 DataField，保证类型重分配的完整性
                                         f.type().accept(this),
                                         f.description(),
                                         f.defaultValue()));

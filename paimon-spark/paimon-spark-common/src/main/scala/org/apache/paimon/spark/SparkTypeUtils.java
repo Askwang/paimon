@@ -304,6 +304,7 @@ public class SparkTypeUtils {
                     fieldResults.add(visit(field.dataType(), visitor, atomicInteger));
                 }
 
+                // spark STRUCT type => paimon RowType
                 return visitor.struct((StructType) type, fieldResults, atomicInteger);
 
             } else if (type instanceof org.apache.spark.sql.types.MapType) {

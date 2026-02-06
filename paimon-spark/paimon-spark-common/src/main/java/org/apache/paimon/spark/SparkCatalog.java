@@ -341,6 +341,7 @@ public class SparkCatalog extends SparkBaseCatalog
     @Override
     public org.apache.spark.sql.connector.catalog.Table alterTable(
             Identifier ident, TableChange... changes) throws NoSuchTableException {
+        // spark TableChange => paimon SchemaChange
         List<SchemaChange> schemaChanges =
                 Arrays.stream(changes).map(this::toSchemaChange).collect(Collectors.toList());
         try {
@@ -401,8 +402,12 @@ public class SparkCatalog extends SparkBaseCatalog
                 return SchemaChange.removeOption(remove.property());
             }
         } else if (change instanceof TableChange.AddColumn) {
+            // spark 的 TableChange 转为 paimon 的 SchemaChange
             TableChange.AddColumn add = (TableChange.AddColumn) change;
             SchemaChange.Move move = getMove(add.position(), add.fieldNames());
+
+            // askwang-todo: SchemaChange.AddColumn 不支持 default value, TableChange.AddColumn 是封装有 default value 的
+            // 需要在 alter column 时修改，ALTER TABLE T ALTER COLUMN b SET DEFAULT 3;
             checkNoDefaultValue(add);
             return SchemaChange.addColumn(
                     add.fieldNames(),
@@ -436,6 +441,17 @@ public class SparkCatalog extends SparkBaseCatalog
             throw new UnsupportedOperationException(
                     "Change is not supported: " + change.getClass());
         }
+    }
+
+    private static SchemaChange.Move getMoveAskwang(
+            TableChange.ColumnPosition columnPosition, String[] fieldNames) {
+        SchemaChange.Move move = null;
+        if (columnPosition instanceof TableChange.First) {
+            move = SchemaChange.Move.first(fieldNames[0]);
+        } else if (columnPosition instanceof TableChange.After) {
+            move = SchemaChange.Move.after(fieldNames[0], ((TableChange.After) columnPosition).column());
+        }
+        return move;
     }
 
     private static SchemaChange.Move getMove(
@@ -477,6 +493,8 @@ public class SparkCatalog extends SparkBaseCatalog
                         : Arrays.stream(pkAsString.split(","))
                                 .map(String::trim)
                                 .collect(Collectors.toList());
+
+        // askwang-todo: Transform partitions 如何构建的
         Schema.Builder schemaBuilder =
                 Schema.newBuilder()
                         .options(normalizedProperties)
@@ -487,6 +505,7 @@ public class SparkCatalog extends SparkBaseCatalog
         // 将 spark 的 field 转化为 Paimon 的 schema 信息
         for (StructField field : schema.fields()) {
             String name = field.name();
+            // spark DataType => paimon DataType
             DataType type = toPaimonType(field.dataType()).copy(field.nullable());
             String comment = field.getComment().getOrElse(() -> null);
             if (field.metadata().contains(CURRENT_DEFAULT_COLUMN_METADATA_KEY)) {
@@ -497,7 +516,7 @@ public class SparkCatalog extends SparkBaseCatalog
                 schemaBuilder.column(name, type, comment);
             }
         }
-        // build 的时候会对 primary-key/partition-key 进行规范化处理，比如 pk 不能为 null
+        // build 的时候会有 normalize 操作，对 primary-key/partition-key 进行规范化处理，比如 pk 不能为 null
         return schemaBuilder.build();
     }
 

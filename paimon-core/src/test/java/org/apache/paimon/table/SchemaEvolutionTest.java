@@ -95,6 +95,34 @@ public class SchemaEvolutionTest {
     }
 
     @Test
+    public void testUpdateProperty() throws Exception {
+        Schema schema =
+                new Schema(
+                        RowType.of(DataTypes.INT(), DataTypes.BIGINT()).getFields(),
+                        Collections.emptyList(),
+                        Collections.emptyList(),
+                        ImmutableMap.of("a", "20"),
+                        "");
+
+        schemaManager.createTable(schema);
+
+        TableSchema newSchema =
+                schemaManager.commitChanges(
+                        Collections.singletonList(SchemaChange.setOption("a", "10")));
+
+        System.out.println(schemaManager.listAllIds());
+        System.out.println(newSchema.options());
+
+        // remove option
+        TableSchema newSchema2 =
+                schemaManager.commitChanges(
+                        Collections.singletonList(SchemaChange.removeOption("non-key")));
+
+        System.out.println(schemaManager.listAllIds());
+        System.out.println(newSchema2.options());
+    }
+
+    @Test
     public void testAddField() throws Exception {
         Schema schema =
                 new Schema(

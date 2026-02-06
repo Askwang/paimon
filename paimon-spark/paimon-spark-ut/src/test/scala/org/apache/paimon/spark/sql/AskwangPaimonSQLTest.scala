@@ -18,18 +18,21 @@
 
 package org.apache.paimon.spark.sql
 
+import org.apache.paimon.schema.{Schema, SchemaManager, TableSchema}
 import org.apache.paimon.spark.PaimonSparkTestBase
 
 import org.apache.spark.sql.execution.QueryExecution
 
+import java.util.Optional
+
 /** paimon spark test. */
 class AskwangPaimonSQLTest extends PaimonSparkTestBase {
+
+  println(sparkVersion)
 
   // ----------------------------------- read and write ---------------------------------
 
   test("[read/write] insert into non-partition/no-bucket/append table") {
-
-    println(sparkVersion)
 
     withSparkSQLConf("spark.sql.planChangeLog.level" -> "TRACE") {
       sql(s"""
@@ -45,8 +48,6 @@ class AskwangPaimonSQLTest extends PaimonSparkTestBase {
   }
 
   test("cast(hour as int) not push down") {
-
-    println(sparkVersion)
 
     sql(s"""
            |CREATE TABLE T (id STRING, hour STRING, appid string, day string)
@@ -64,7 +65,7 @@ class AskwangPaimonSQLTest extends PaimonSparkTestBase {
     sql("select * from T where hour='17' and id = '2' and day = '2025' ").show(false)
   }
 
-  test("alter table drop partition") {
+  test("alter table: drop partitions") {
     println(sparkVersion)
 
     sql(s"""
@@ -93,21 +94,114 @@ class AskwangPaimonSQLTest extends PaimonSparkTestBase {
 //    sql("select * from `T$partitions`").show(false)
   }
 
+  test("alter table: add partitions") {
 
-  test("alter table add partition") {
-    println(sparkVersion)
+    sql(s"""
+           |CREATE TABLE T (id STRING, appid string, day string, hour STRING)
+           |TBLPROPERTIES ('primary-key'='id,hour,day', 'bucket'='2')
+           | PARTITIONED BY (hour,day)
+           |""".stripMargin)
 
+    // add partition 多个分区中间没有 ','
+    // paimon 不会自动 commit 空的 partition，只是把分区信息同步到 hms
+    sql(
+      "alter table T add partition (day='2026-01-01', hour = '01') partition (day='2026-01-16', hour = '02')")
+
+    sql("show partitions T").show(false)
+  }
+
+  test("alter table: add/change/remove table prop") {
+    sql(
+      s"""
+         |CREATE TABLE T (id STRING, appid string, day string, hour STRING)
+         |TBLPROPERTIES ('primary-key'='id,hour,day', 'bucket'='2', 'manifest.full-compaction-threshold-size'='32mb')
+         | PARTITIONED BY (hour,day)
+         |""".stripMargin)
+
+    val table = loadTable("T")
+    val schemaManager = table.schemaManager()
+
+//    sql("alter table T set TBLPROPERTIES ('a' = '32m')")
+//    sql("alter table T set TBLPROPERTIES ('a ' = '323m')")
+//    val value: Optional[TableSchema] = schemaManager.latest()
+//    println(value.get().options())
+
+//    sql("alter table T set TBLPROPERTIES ('manifest.full-compaction-threshold-size' = '32m')")
+//    sql("alter table T set TBLPROPERTIES ('manifest.full-compaction-threshold-size' = '64m')")
+
+    printSchema(schemaManager)
+
+    // key不存在/存在
+    sql("alter table T unset TBLPROPERTIES ('manifest.full-compaction-threshold-size')")
+
+    printSchema(schemaManager)
+
+  }
+
+  def printSchema(schemaManager: SchemaManager): Unit = {
+    val schema = schemaManager.latest().get()
+    println(schema.id() + " : " + schema.options() + " : " + schema.comment())
+  }
+
+  test("alter table: add/change/remove table comment") {
+    sql(
+      s"""
+         |CREATE TABLE T (id STRING, appid string, day string, hour STRING)
+         |TBLPROPERTIES ('primary-key'='id,hour,day', 'bucket'='2', 'manifest.full-compaction-threshold-size'='32mb')
+         | PARTITIONED BY (hour,day)
+         | comment 'old_comment'
+         |""".stripMargin)
+    val table = loadTable("T")
+    val schemaManager = table.schemaManager()
+
+    sql("alter table T set TBLPROPERTIES ('comment' = 'old_comment')")
+
+    printSchema(schemaManager)
+
+    sql("alter table T unset TBLPROPERTIES ('comment')")
+    printSchema(schemaManager)
+  }
+
+  test("alter table: add new cols / add col position / drop cols") {
+    sql(
+      s"""
+         |CREATE TABLE T (id STRING, appid string default '000', day string, hour STRING)
+         |TBLPROPERTIES ('primary-key'='id,hour,day', 'bucket'='2')
+         | PARTITIONED BY (hour,day)
+         | comment 'old_comment'
+         |""".stripMargin)
+    val table = loadTable("T")
+    val schemaManager = table.schemaManager()
+
+    sql("alter table T add columns (c1 int comment 'c111' after id, c2 string after c1)")
+
+    println(schemaManager.latest().get())
+  }
+
+  test("alter table: add new cols / add col position / drop cols for nested type") {
+    sql(
+      s"""
+         |CREATE TABLE T (id STRING, v STRUCT<f1: STRING, f2: INT>)
+         |TBLPROPERTIES ('primary-key'='id', 'bucket'='2')
+         | comment 'old_comment'
+         |""".stripMargin)
+    val table = loadTable("T")
+    val schemaManager = table.schemaManager()
+
+    sql("alter table T add columns v.f3 STRING after f1")
+
+    println(schemaManager.latest().get())
+  }
+
+  test("alter table: rename col name / change col type / change col comment / change col position") {
     sql(
       s"""
          |CREATE TABLE T (id STRING, appid string, day string, hour STRING)
          |TBLPROPERTIES ('primary-key'='id,hour,day', 'bucket'='2')
          | PARTITIONED BY (hour,day)
+         | comment 'old_comment'
          |""".stripMargin)
-
-    // add partition 多个分区中间没有 ','
-    sql("alter table T add partition (day='2026-01-01', hour = '01') partition (day='2026-01-16', hour = '02')")
-
-    sql("show partitions T").show(false)
+    val table = loadTable("T")
   }
 
   // ----------------------------------- merge engine ---------------------------------

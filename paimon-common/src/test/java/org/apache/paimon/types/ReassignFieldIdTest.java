@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ReassignFieldIdTest {
     @Test
     void testReassignNestRowType() {
+        // ROW<`a` ROW<`b` ROW<`c` INT>>, `d` INT>
         RowType rowType =
                 RowType.builder()
                         .field(

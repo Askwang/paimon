@@ -18,7 +18,9 @@
 
 package org.apache.paimon.schema;
 
+import org.apache.arrow.vector.table.Row;
 import org.apache.paimon.CoreOptions;
+import org.apache.paimon.catalog.Catalog;
 import org.apache.paimon.data.BinaryString;
 import org.apache.paimon.data.GenericRow;
 import org.apache.paimon.data.InternalRow;
@@ -34,6 +36,7 @@ import org.apache.paimon.table.sink.TableWriteImpl;
 import org.apache.paimon.types.ArrayType;
 import org.apache.paimon.types.BigIntType;
 import org.apache.paimon.types.DataField;
+import org.apache.paimon.types.DataType;
 import org.apache.paimon.types.DataTypes;
 import org.apache.paimon.types.DoubleType;
 import org.apache.paimon.types.IntType;
@@ -747,5 +750,36 @@ public class SchemaManagerTest {
                         new DataField(
                                 1, "v", new ArrayType(new MapType(DataTypes.INT(), innerType))));
         assertThat(manager.latest().get().logicalRowType()).isEqualTo(outerType);
+    }
+
+    /**
+     * {@link SchemaManager.NestedColumnModifier#extractRowDataFields(DataType, List)}
+     */
+    @Test
+    public void testExtractRowDataFields() {
+        RowType rowType =
+                RowType.of(
+                        new DataField(0, "f1", DataTypes.INT()),
+                        new DataField(1, "f2", RowType.of(
+                                new DataField(2, "f3", DataTypes.ARRAY(DataTypes.INT())),
+                                new DataField(3, "f4", DataTypes.STRING())
+                        )));
+
+        rowType = RowType.builder()
+                .field("f1", DataTypes.INT())
+                .field("f2", DataTypes.ARRAY(rowType))
+                .build();
+
+        ArrayType arrayType = DataTypes.ARRAY(DataTypes.INT());
+
+        ArrayList<DataField> nestedFields = new ArrayList<>();
+        int depth = new SchemaManager.NestedColumnModifier() {
+            @Override
+            protected void updateLastColumn(int depth, List<DataField> newFields, String fieldName) {
+                // do nothing
+            }
+        }.extractRowDataFields(arrayType, nestedFields);
+        System.out.println(nestedFields.size() + " : " + nestedFields);
+        System.out.println("depth: " + depth);
     }
 }

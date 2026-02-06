@@ -27,7 +27,8 @@ import scala.util.Try
 
 object UnresolvedPaimonRelation extends PaimonLookupCatalog {
 
-  protected lazy val catalogManager: CatalogManager = SparkSession.active.sessionState.catalogManager
+  protected lazy val catalogManager: CatalogManager =
+    SparkSession.active.sessionState.catalogManager
 
   def unapply(plan: LogicalPlan): Option[LogicalPlan] = {
     EliminateSubqueryAliases(plan) match {

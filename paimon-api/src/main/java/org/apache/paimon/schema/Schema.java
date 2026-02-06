@@ -326,6 +326,9 @@ public class Schema {
             Preconditions.checkNotNull(columnName, "Column name must not be null.");
             Preconditions.checkNotNull(dataType, "Data type must not be null.");
 
+            // highestFieldId 初始值为-1，每次处理一个 column 自增 +1
+            // 对于 nested column ，highestFieldId 会基于当前值重新赋值，内部会自动 +1
+            // 比如 columns(id int, v struct<f1:int, f2:string>), schema id 为 <0, id>, <1, <2, f1>, <3, f2>
             int id = highestFieldId.incrementAndGet();
             DataType reassignDataType = ReassignFieldId.reassign(dataType, highestFieldId);
             columns.add(new DataField(id, columnName, reassignDataType, description, defaultValue));

@@ -33,7 +33,7 @@ class AskwangSparkTest extends PaimonHiveTestBase {
         sql("CREATE TABLE `tb1`(i INT, dt TIMESTAMP) USING parquet")
         sql("show create table tb1").show(false)
 
-        // sql("CREATE TABLE `tb2` like `tb1`")
+         sql("CREATE TABLE `tb2` like `tb1`")
       }
     }
   }

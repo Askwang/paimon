@@ -256,7 +256,17 @@ public class SchemaManager implements Serializable {
                     new LazyField<>(() -> identifierFromPath(tableRoot.toString(), true, branch));
             TableSchema newTableSchema =
                     generateTableSchema(oldTableSchema, changes, hasSnapshots, lazyIdentifier);
+
+            // no schema changed.
+            // consider TableSchema info, like comment
+//            if (oldTableSchema.id() != newTableSchema.id()
+//                    && oldTableSchema.toSchema().equals(newTableSchema.toSchema())
+//                    && Objects.equals(oldTableSchema.comment(), newTableSchema.comment())) {
+//                return oldTableSchema;
+//            }
+
             try {
+                // 写 schema 目录
                 boolean success = commit(newTableSchema);
                 if (success) {
                     return newTableSchema;
@@ -274,7 +284,10 @@ public class SchemaManager implements Serializable {
             LazyField<Identifier> lazyIdentifier)
             throws Catalog.ColumnAlreadyExistException, Catalog.ColumnNotExistException {
         Map<String, String> oldOptions = new HashMap<>(oldTableSchema.options());
+        // newOptions 会先 copy oldOptions 的 <k,v>
         Map<String, String> newOptions = new HashMap<>(oldTableSchema.options());
+
+        // 默认 true，不允许 null -> not null 转换
         boolean disableNullToNotNull =
                 Boolean.parseBoolean(
                         oldOptions.getOrDefault(
@@ -283,6 +296,7 @@ public class SchemaManager implements Serializable {
                                         .defaultValue()
                                         .toString()));
 
+        // 默认 false，允许显式类型转换
         boolean disableExplicitTypeCasting =
                 Boolean.parseBoolean(
                         oldOptions.getOrDefault(
@@ -290,8 +304,11 @@ public class SchemaManager implements Serializable {
                                 CoreOptions.DISABLE_EXPLICIT_TYPE_CASTING
                                         .defaultValue()
                                         .toString()));
+
+        // 中间状态，已添加未commit的col也会保存
         List<DataField> newFields = new ArrayList<>(oldTableSchema.fields());
         AtomicInteger highestFieldId = new AtomicInteger(oldTableSchema.highestFieldId());
+
         String newComment = oldTableSchema.comment();
         for (SchemaChange change : changes) {
             if (change instanceof SetOption) {
@@ -321,8 +338,11 @@ public class SchemaManager implements Serializable {
                         "Column %s cannot specify NOT NULL in the %s table.",
                         String.join(".", addColumn.fieldNames()),
                         lazyIdentifier.get().getFullName());
+
+                // 获取当前 scheme 的最大 fieldId，新增列的 fieldId 基于这个自增
                 int id = highestFieldId.incrementAndGet();
                 DataType dataType = ReassignFieldId.reassign(addColumn.dataType(), highestFieldId);
+
                 new NestedColumnModifier(addColumn.fieldNames(), lazyIdentifier) {
                     @Override
                     protected void updateLastColumn(
@@ -331,6 +351,9 @@ public class SchemaManager implements Serializable {
                                     Catalog.ColumnNotExistException {
                         assertColumnNotExists(newFields, fieldName, lazyIdentifier);
 
+                        // 新增的col不影响原来旧的col的id，直接自增，字段顺序可以不按id顺序递增
+                        // 比如当前schema highestFieldId=3，新增列 RowType(a: int, b: int) id 为 4，
+                        // ReassignFieldId 会基于这个 id 继续分配嵌套字段, 新的 column 分配的 id 编号为 <4, <a, 5>, <b, 6>>
                         DataField dataField =
                                 new DataField(id, fieldName, dataType, addColumn.description());
 
@@ -399,7 +422,7 @@ public class SchemaManager implements Serializable {
                         }
                     }
                 }.updateIntermediateColumn(newFields, 0);
-            } else if (change instanceof DropColumn) {
+            } else if (change instanceof DropColumn) { // askwang-todo: highestFieldId 是否需要 -1
                 DropColumn drop = (DropColumn) change;
                 dropColumnValidation(oldTableSchema, drop);
                 new NestedColumnModifier(drop.fieldNames(), lazyIdentifier) {
@@ -853,10 +876,15 @@ public class SchemaManager implements Serializable {
         }
     }
 
-    private abstract static class NestedColumnModifier {
+    abstract static class NestedColumnModifier {
 
         private final String[] updateFieldNames;
         private final LazyField<Identifier> identifier;
+
+        public NestedColumnModifier() {
+            this.updateFieldNames = null;
+            this.identifier = null;
+        }
 
         private NestedColumnModifier(String[] updateFieldNames, LazyField<Identifier> identifier) {
             this.updateFieldNames = updateFieldNames;
@@ -866,6 +894,7 @@ public class SchemaManager implements Serializable {
         private void updateIntermediateColumn(
                 List<DataField> newFields, List<DataField> previousFields, int depth, int prevDepth)
                 throws Catalog.ColumnNotExistException, Catalog.ColumnAlreadyExistException {
+            // 处理基本 type，depth=0
             if (depth == updateFieldNames.length - 1) {
                 updateLastColumn(depth, newFields, updateFieldNames[depth]);
                 return;
@@ -882,6 +911,7 @@ public class SchemaManager implements Serializable {
                 return;
             }
 
+            // 处理 RowType，按层级 depth 递增，最终是要拆解到基本类型
             for (int i = 0; i < newFields.size(); i++) {
                 DataField field = newFields.get(i);
                 if (!field.name().equals(updateFieldNames[depth])) {
@@ -912,7 +942,7 @@ public class SchemaManager implements Serializable {
             updateIntermediateColumn(newFields, newFields, depth, depth);
         }
 
-        private int extractRowDataFields(DataType type, List<DataField> nestedFields) {
+        public int extractRowDataFields(DataType type, List<DataField> nestedFields) {
             switch (type.getTypeRoot()) {
                 case ROW:
                     nestedFields.addAll(((RowType) type).getFields());

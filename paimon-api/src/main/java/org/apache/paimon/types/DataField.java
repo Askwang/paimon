@@ -199,6 +199,16 @@ public final class DataField implements Serializable {
         return asSQLString();
     }
 
+    public String fullInfoAskwnag() {
+        return "DataField{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", type=" + type +
+                ", description='" + description + '\'' +
+                ", defaultValue='" + defaultValue + '\'' +
+                '}';
+    }
+
     /**
      * When the order of the same field is different, its ID may also be different, so the
      * comparison should not include the ID.
